@@ -1,0 +1,62 @@
+[
+  {
+    "topic": "2025年大语言模型发展趋势",
+    "status": "completed",
+    "elapsed_seconds": 79.41,
+    "sub_questions": 5,
+    "total_documents": 40,
+    "review_rounds": 1,
+    "review_scores": [
+      8
+    ],
+    "report_length": 5960
+  },
+  {
+    "topic": "向量数据库技术选型对比",
+    "status": "completed",
+    "elapsed_seconds": 81.85,
+    "sub_questions": 5,
+    "total_documents": 45,
+    "review_rounds": 1,
+    "review_scores": [
+      7
+    ],
+    "report_length": 5851
+  },
+  {
+    "topic": "Python异步编程最佳实践",
+    "status": "completed",
+    "elapsed_seconds": 76.56,
+    "sub_questions": 5,
+    "total_documents": 37,
+    "review_rounds": 1,
+    "review_scores": [
+      8
+    ],
+    "report_length": 10380
+  },
+  {
+    "topic": "多智能体系统架构设计",
+    "status": "completed",
+    "elapsed_seconds": 79.51,
+    "sub_questions": 5,
+    "total_documents": 42,
+    "review_rounds": 1,
+    "review_scores": [
+      8
+    ],
+    "report_length": 8193
+  },
+  {
+    "topic": "检索增强生成RAG技术现状",
+    "status": "completed",
+    "elapsed_seconds": 93.07,
+    "sub_questions": 5,
+    "total_documents": 43,
+    "review_rounds": 1,
+    "review_scores": [
+      8
+    ],
+    "report_length": 7681
+  }
+]
