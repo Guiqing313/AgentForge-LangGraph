@@ -131,7 +131,7 @@ AgentForge/
 4. **计算器用 AST 白名单求值**：不使用裸 `eval`；
 5. **LLM 工厂支持 live / mock 双模式**：无 Key 时也能离线跑通编排逻辑，便于测试与演示；
 6. **量化数据不预设**：项目数据需通过 `scripts/run_e2e.py` 与测试真实测得。
-## 真实运行记录（2026-08-18 批量实测）
+## 真实运行记录
 
 用 `scripts/run_batch.py` 对 5 个主题各运行一次，数据真实记录于 `data/batch_results.json`：
 
