@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 from app.agents.base import BaseAgent
 from app.config import settings
+from app.observability import current_tracker
 from app.tools.rag import LocalSearchTool
 from app.tools.search import WebSearchTool
 
@@ -141,14 +142,33 @@ class SearcherAgent(BaseAgent):
 
     def _try_web(self, query: str) -> tuple[list[dict], str | None]:
         try:
-            return self.web_search.search(query), None
+            docs = self.web_search.search(query)
+            tracker = current_tracker()
+            if tracker is not None:
+                tracker.record_search(
+                    backend=getattr(self.web_search, "last_backend", "web"),
+                    query=query,
+                    ok=True,
+                    n_results=len(docs),
+                )
+            return docs, None
         except Exception as exc:  # noqa: BLE001
+            tracker = current_tracker()
+            if tracker is not None:
+                tracker.record_search(backend="web", query=query, ok=False, error=str(exc))
             return [], str(exc)
 
     def _try_local(self, query: str) -> tuple[list[dict], str | None]:
         try:
-            return self.local_search.search(query), None
+            docs = self.local_search.search(query)
+            tracker = current_tracker()
+            if tracker is not None:
+                tracker.record_search(backend="local", query=query, ok=True, n_results=len(docs))
+            return docs, None
         except Exception as exc:  # noqa: BLE001
+            tracker = current_tracker()
+            if tracker is not None:
+                tracker.record_search(backend="local", query=query, ok=False, error=str(exc))
             return [], str(exc)
 
     @staticmethod

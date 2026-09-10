@@ -73,4 +73,48 @@ def test_base_agent_records_json_parse_failure(monkeypatch):
             BaseAgent()._chat_json("s", "u")
         except ValueError:
             pass
+    # 解析失败后会有一次严格重试，因此计 2 次失败
+    assert tracker.snapshot()["json_parse_failures"] == 2
+
+
+def test_tracker_propagates_to_search_threads():
+    from app import observability
+    from app.graph.research_graph import ResearchGraph
+
+    class TrackerSearcher:
+        def search(self, question):
+            from app.agents.searcher import SearchOutcome
+
+            tracker = observability.current_tracker()
+            if tracker is not None:
+                tracker.record_search(backend="tavily", query=question, ok=True, n_results=1)
+            return SearchOutcome(question=question, documents=[{"title": "t", "content": "c", "url": "u"}], rounds=1)
+
+    graph = ResearchGraph(searcher=TrackerSearcher())
+    with observability.track(task_id=1) as tracker:
+        graph._search_node({"sub_questions": ["a", "b"]})
+    assert tracker.snapshot()["search_calls"] == 2
+
+
+def test_chat_json_retries_once_on_parse_failure(monkeypatch):
+    from app import observability
+    from app.agents.base import BaseAgent
+    from app.llm.factory import _FakeMessage
+
+    class FlakyLLM:
+        def __init__(self):
+            self.calls = 0
+
+        def invoke(self, messages, **kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                return _FakeMessage("这不是 JSON")
+            return _FakeMessage('{"ok": true}')
+
+    flaky = FlakyLLM()
+    monkeypatch.setattr("app.agents.base.get_llm", lambda: flaky)
+    with observability.track(task_id=1) as tracker:
+        result = BaseAgent()._chat_json("s", "u")
+    assert result == {"ok": True}
+    assert flaky.calls == 2
     assert tracker.snapshot()["json_parse_failures"] == 1

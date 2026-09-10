@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import contextvars
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
@@ -66,7 +67,11 @@ class ResearchGraph:
 
         max_workers = min(len(questions) or 1, 4)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_map = {executor.submit(self.searcher.search, q): q for q in questions}
+            # 复制当前 context（含 UsageTracker），否则子线程里 current_tracker() 为 None
+            future_map = {}
+            for question in questions:
+                ctx = contextvars.copy_context()
+                future_map[executor.submit(ctx.run, self.searcher.search, question)] = question
             for future in as_completed(future_map):
                 question = future_map[future]
                 try:

@@ -111,15 +111,24 @@ class BaseAgent:
             )
         return response.content
 
-    def _chat_json(self, system_prompt: str, user_prompt: str) -> Any:
+    def _chat_json(self, system_prompt: str, user_prompt: str, retries: int = 1) -> Any:
+        """要求 JSON；解析失败时追加一次更严格的指令重试（本地 7B 偶发输出 Markdown）。"""
         raw = self._chat(system_prompt, user_prompt)
-        try:
-            return extract_json(raw)
-        except Exception:
-            tracker = current_tracker()
-            if tracker is not None:
-                tracker.record_json_failure()
-            raise
+        attempt = 0
+        while True:
+            try:
+                return extract_json(raw)
+            except Exception:
+                tracker = current_tracker()
+                if tracker is not None:
+                    tracker.record_json_failure()
+                if attempt >= retries:
+                    raise
+                attempt += 1
+                raw = self._chat(
+                    system_prompt + "\n\n严格要求：只输出可解析的 JSON，不要输出解释、标题或 Markdown 围栏。",
+                    user_prompt + "\n\n（注意：上一次回答不是可解析的 JSON，请只输出 JSON。）",
+                )
 
     def _model_name(self) -> str:
         if settings.effective_provider == "ollama":
