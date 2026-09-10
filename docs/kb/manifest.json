@@ -1,5 +1,5 @@
 {
-  "corpus_version": "v1-2026-09-10",
+  "corpus_version": "v2-2026-09-10",
   "documents": [
     {
       "file": "README.md",
@@ -40,14 +40,7 @@
       "sha256": "0eb49b69e9a0c3e403cd254a123c3dfa1aa86bcf9269bcc90d2813f85d3f8dbc",
       "size_chars": 29024,
       "added_at": "2026-09-10"
-    },
-    {
-      "file": "AI应用实习面试学习文档.md",
-      "source_path": "D:\\codex使用文件夹\\SmartKB2.0\\data\\docs\\AI应用实习面试学习文档.md",
-      "license": "用户自写学习笔记（用户确认可公开）",
-      "sha256": "6b2519538e443f03f37d2e46f86f3ba56eeb17de3c2d66fa49f8fa2ed92e490b",
-      "size_chars": 21775,
-      "added_at": "2026-09-10"
     }
-  ]
+  ],
+  "note": "v2：按用户 2026-09-10 决定移除《AI应用实习面试学习文档.md》（不公开），并重建索引。"
 }

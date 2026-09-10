@@ -1,6 +1,7 @@
 """A1：知识库 loader/indexer/embedding 的离线测试（确定性假向量，不访问网络）。"""
 
 from dataclasses import replace
+from pathlib import Path
 
 from app.config import settings
 from app.kb import indexer
@@ -57,3 +58,13 @@ def test_build_and_query_with_fake_embedding(tmp_path, monkeypatch):
     again = indexer.build_index(docs_dir=str(docs_dir), rebuild=True, embedding_function=fake)
     assert again["collection_count"] == again["chunks"]
     assert sha256_text("x") == sha256_text("x")
+
+
+def test_private_interview_doc_not_in_corpus():
+    """用户 2026-09-10 决定不公开面试笔记，语料目录不得包含该文件。"""
+    from app.config import settings
+
+    corpus = Path(settings.docs_dir)
+    assert not (corpus / "AI应用实习面试学习文档.md").exists()
+    manifest = (corpus / "manifest.json").read_text(encoding="utf-8")
+    assert "AI应用实习面试学习文档" not in manifest

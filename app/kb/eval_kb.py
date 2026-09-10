@@ -34,13 +34,13 @@ DEFAULT_EVAL_QUERIES: tuple[EvalQuery, ...] = (
     EvalQuery("LangGraph 多 Agent 研究协作系统是如何设计的？", ("README.md", "tutorial-AgentForge.md"), ("LangGraph", "Agent")),
     EvalQuery("审核闭环如何避免死循环？", ("README.md", "tutorial-AgentForge.md"), ("审核", "死循环", "迭代")),
     EvalQuery("ReAct 搜索 Agent 的工作流程是什么？", ("tutorial-AgentForge.md", "README.md"), ("ReAct", "搜索")),
-    EvalQuery("RAG 的完整流程是什么？", ("主流大模型与应用范式分析.md", "AI应用实习面试学习文档.md", "tutorial-AgentForge.md"), ("检索", "RAG")),
-    EvalQuery("混合检索为什么要把向量和 BM25 结合？", ("主流大模型与应用范式分析.md", "AI应用实习面试学习文档.md"), ("BM25", "向量", "检索")),
+    EvalQuery("RAG 的完整流程是什么？", ("主流大模型与应用范式分析.md", "tutorial-AgentForge.md"), ("检索", "RAG")),
+    EvalQuery("混合检索为什么要把向量和 BM25 结合？", ("主流大模型与应用范式分析.md",), ("BM25", "向量", "检索")),
     EvalQuery("Prompt 注入的风险如何工程化防御？", ("大模型幻觉与Prompt注入风险工程化应对.md",), ("注入", "防御", "Prompt")),
     EvalQuery("LoRA 和 QLoRA 有什么区别？", ("微调与LoRA知识.md", "主流大模型与应用范式分析.md"), ("LoRA", "微调")),
     EvalQuery("大模型幻觉是怎么产生的？", ("大模型幻觉与Prompt注入风险工程化应对.md", "主流大模型与应用范式分析.md"), ("幻觉",)),
-    EvalQuery("AI 应用岗位面试通常考察哪些能力？", ("AI应用实习面试学习文档.md",), ("面试", "能力", "应用")),
-    EvalQuery("向量数据库在 RAG 中起什么作用？", ("主流大模型与应用范式分析.md", "AI应用实习面试学习文档.md"), ("向量", "数据库")),
+    EvalQuery("多 Agent 系统如何做任务规划与工具调用？", ("tutorial-AgentForge.md", "README.md", "主流大模型与应用范式分析.md"), ("Agent", "工具", "规划")),
+    EvalQuery("向量数据库在 RAG 中起什么作用？", ("主流大模型与应用范式分析.md",), ("向量", "数据库")),
 )
 
 
