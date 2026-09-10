@@ -265,14 +265,16 @@ duckduckgo-search==8.1.1
 
 ---
 
-## 6. Gate 检查单
+## 6. Gate 检查单（含用户抽验项）
 
-| Gate | 必须满足 | 用户动作 |
-|---|---|---|
-| G0 | worktree 建立；依赖版本记录；pytest 22 通过；Ollama 可启动且模型可见；语料 6 篇确认无隐私 | 审核 `G0-baseline.md` |
-| G1 | A0–A5 完成；pytest+ruff 全绿；KB hit_rate@3 ≥0.7；Memory 演示；本地 live ≥2 主题；DeepSeek 1 次对比 ≤2 元 | 审核 `A1/A2/A3/A4/A5` 证据 |
-| G2 | B1–B4 完成；interrupt/resume 演示；worker 恢复；metrics；SSE 测试；回归全绿 | 审核 B 阶段证据 + 演示 |
-| G3 | README 与真实能力一致；账本更新；未落地项标注"规划中"；DoD 全项核对 | 最终验收 |
+> 用户抽验规则：每个 Gate 至少现场/复核抽验 1–2 项可独立验证的证据，不能只凭 AI 总结。风险与介入清单见 `docs/upgrade/RISKS.md`。
+
+| Gate | 必须满足 | 用户抽验项（1–2 项） | 用户动作 |
+|---|---|---|---|
+| G0 | worktree 建立；依赖版本记录；pytest 22 通过；Ollama 可启动且模型可见；语料 6 篇确认无隐私 | ① `pytest -q` 22 项（已抽验）；② `ollama list` 两个模型（已抽验） | 审核 `G0-baseline.md`（已完成） |
+| G1 | A0–A5 完成；pytest+ruff 全绿；KB hit_rate@3 ≥0.7；Memory 演示；本地 live ≥2 主题；DeepSeek 1 次对比 ≤2 元 | ① `LocalSearchTool().search("RAG 的完整流程是什么？")` 返回非空；② 记忆演示：第二次相似任务 planner 输入含第一条记忆 + `agent_memory` 计数增长；③ 抽看 `docs/upgrade/A1-kb-report.md` 数字与脚本输出一致；④ 抽看 `data/live_results.json` 成本记录 | 审核 `A1/A2/A3/A4/A5` 证据 + 现场抽验 |
+| G2 | B1–B4 完成；interrupt/resume 演示；worker 恢复；metrics；SSE 测试；回归全绿 | ① interrupt→编辑子问题→resume 现场演示（含进程重启恢复）；② `GET /api/tasks/{id}/metrics` 数字与一次真实任务一致；③ SSE 事件顺序（status/log/node/done） | 审核 B 阶段证据 + 现场抽验 |
+| G3 | README 与真实能力一致；账本更新；未落地项标注"规划中"；DoD 全项核对 | ① README 逐条对照真实能力；② 账本 claim-af-002/003 措辞由用户最终点头；③ 语料公开范围最终确认 | 最终验收 + 授权推送 |
 
 ---
 
