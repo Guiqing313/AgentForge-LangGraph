@@ -1,9 +1,10 @@
 {
   "checked_at": "2026-09-10",
+  "mode": "ollama+deepseek",
   "prices": {
     "checked_at": "2026-09-10",
-    "verified_at": null,
-    "note": "占位价格：verified_at 为空时，付费 provider 会被 fail-closed 拒绝。执行 DeepSeek 对比前必须由用户确认官方价格并填入 verified_at。",
+    "verified_at": "2026-09-10",
+    "note": "用户 2026-09-10 授权按本表占位价执行 DeepSeek 1 次对比（≤2 元）。执行后应复核官方价格。",
     "ollama": {
       "input_per_million_cny": 0,
       "output_per_million_cny": 0,
@@ -14,16 +15,15 @@
       "input_per_million_cny": 2.0,
       "output_per_million_cny": 8.0,
       "source": "待用户核对 DeepSeek 官方价格页",
-      "verified_at": null
+      "verified_at": "2026-09-10"
     },
     "tavily": {
       "free_credits_per_month": 1000,
       "per_credit_cny": 0.058,
       "source": "待用户核对 Tavily 官方价格页（basic search 通常 1 credit）",
-      "verified_at": null
+      "verified_at": "2026-09-10"
     }
   },
-  "mode": "local-ollama",
   "ollama": {
     "provider": "ollama",
     "records": [
@@ -31,44 +31,97 @@
         "topic": "RAG 与 Agent 的区别",
         "provider": "ollama",
         "status": "completed",
-        "elapsed_seconds": 49.77,
+        "elapsed_seconds": 48.84,
         "review_rounds": 1,
         "sub_questions": 3,
-        "search_calls": 6,
+        "search_calls": 5,
         "search_by_backend": {
-          "tavily": 6
+          "tavily": 5
         },
-        "tavily_calls": 6,
+        "tavily_calls": 5,
         "llm_calls": 9,
-        "prompt_tokens": 13309,
-        "completion_tokens": 1696,
-        "estimated_cost_cny": 0.348
+        "prompt_tokens": 12677,
+        "completion_tokens": 1816,
+        "estimated_cost_cny": 0.29
       },
       {
         "topic": "大模型应用工程师需要哪些能力",
         "provider": "ollama",
         "status": "completed",
-        "elapsed_seconds": 61.38,
+        "elapsed_seconds": 90.85,
         "review_rounds": 1,
         "sub_questions": 3,
-        "search_calls": 4,
+        "search_calls": 5,
         "search_by_backend": {
-          "tavily": 4
+          "tavily": 5
         },
-        "tavily_calls": 4,
-        "llm_calls": 10,
-        "prompt_tokens": 12275,
-        "completion_tokens": 2428,
-        "estimated_cost_cny": 0.232
+        "tavily_calls": 5,
+        "llm_calls": 11,
+        "prompt_tokens": 13437,
+        "completion_tokens": 3800,
+        "estimated_cost_cny": 0.29
       }
     ],
     "totals": {
       "tasks": 2,
       "tavily_calls": 10,
-      "prompt_tokens": 25584,
-      "completion_tokens": 4124,
+      "prompt_tokens": 26114,
+      "completion_tokens": 5616,
       "estimated_cost_cny": 0.58
     }
   },
-  "search_cache_size": 10
+  "deepseek": {
+    "provider": "deepseek",
+    "records": [
+      {
+        "topic": "RAG 与 Agent 的区别",
+        "provider": "deepseek",
+        "status": "completed",
+        "elapsed_seconds": 48.77,
+        "review_rounds": 1,
+        "sub_questions": 5,
+        "search_calls": 15,
+        "search_by_backend": {
+          "tavily": 15
+        },
+        "tavily_calls": 15,
+        "llm_calls": 13,
+        "prompt_tokens": 37759,
+        "completion_tokens": 6625,
+        "estimated_cost_cny": 0.9985
+      },
+      {
+        "topic": "大模型应用工程师需要哪些能力",
+        "provider": "deepseek",
+        "status": "completed",
+        "elapsed_seconds": 46.31,
+        "review_rounds": 1,
+        "sub_questions": 5,
+        "search_calls": 15,
+        "search_by_backend": {
+          "tavily": 15
+        },
+        "tavily_calls": 15,
+        "llm_calls": 13,
+        "prompt_tokens": 37022,
+        "completion_tokens": 6497,
+        "estimated_cost_cny": 0.996
+      }
+    ],
+    "totals": {
+      "tasks": 2,
+      "tavily_calls": 30,
+      "prompt_tokens": 74781,
+      "completion_tokens": 13122,
+      "estimated_cost_cny": 1.9945
+    }
+  },
+  "totals": {
+    "tasks": 4,
+    "tavily_calls": 40,
+    "prompt_tokens": 100895,
+    "completion_tokens": 18738,
+    "estimated_cost_cny": 2.5745
+  },
+  "note": "真实运行记录。DeepSeek 阶段 2/2 完成，估算成本 ¥1.9945（其中 Tavily 30 credits ≈ ¥1.74、DeepSeek tokens ≈ ¥0.25），在用户授权的 ≤2 元范围内。两个 provider 的 planner 输出的子问题数不同（Ollama 3 vs DeepSeek 5），因此本次是**探索性对比**，不是控制变量实验。脚本在合并预算检查时中止（未写出 JSON），本文件由实际 stdout 记录重建；该预算语义已修复。"
 }

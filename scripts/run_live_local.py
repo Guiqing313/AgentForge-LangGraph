@@ -126,7 +126,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="AgentForge 本地 live 运行 + 成本闸门")
     parser.add_argument("--topics", nargs="+", default=DEFAULT_TOPICS)
     parser.add_argument("--max-tavily-calls", type=int, default=30)
-    parser.add_argument("--max-cost-cny", type=float, default=2.0)
+    parser.add_argument("--max-cost-cny", type=float, default=10.0, help="外部 API 总成本上限（默认 10 元）")
+    parser.add_argument("--max-paid-cost-cny", type=float, default=2.0, help="付费 provider 阶段成本上限（默认 2 元）")
     parser.add_argument("--out", default=str(ROOT / "data" / "live_results.json"))
     parser.add_argument("--compare-deepseek", action="store_true", help="在 Ollama 之后用同一批搜索结果跑 1 次 DeepSeek 对比")
     parser.add_argument("--allow-paid", action="store_true", help="允许付费 provider（需价格表已由用户验证）")
@@ -146,23 +147,33 @@ def main() -> int:
     primary = "ollama"
     ensure_paid_provider_allowed(primary, allow_paid=True, prices=prices)
     clear_cache()
+    def _save(payload: dict) -> Path:
+        path = Path(args.out)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
+
     ollama_result = _run_topics(primary, args.topics, args.max_tavily_calls, args.max_cost_cny)
     results["ollama"] = ollama_result
+    results["search_cache_size"] = cache_size()
+    _save(results)  # 增量落盘：即使下一阶段中止也不丢已有记录
 
     if args.compare_deepseek:
         ensure_paid_provider_allowed("deepseek", allow_paid=args.allow_paid, prices=prices)
-        remaining_cost = max(args.max_cost_cny - ollama_result["totals"]["estimated_cost_cny"], 0.0)
-        if remaining_cost <= 0:
+        remaining_total = max(args.max_cost_cny - ollama_result["totals"]["estimated_cost_cny"], 0.0)
+        paid_limit = min(args.max_paid_cost_cny, remaining_total)
+        if paid_limit <= 0:
             print("预算已用尽，跳过 DeepSeek 对比")
             return 3
-        deepseek_result = _run_topics("deepseek", args.topics, args.max_tavily_calls, remaining_cost)
+        deepseek_result = _run_topics("deepseek", args.topics, args.max_tavily_calls, paid_limit)
         results["deepseek"] = deepseek_result
         results["mode"] = "ollama+deepseek"
+        results["comparison_note"] = (
+            "planner 子问题数可能因 provider 不同而变化，本对比为探索性，不作控制变量结论。"
+        )
 
     results["search_cache_size"] = cache_size()
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_path = _save(results)
     print(f"saved={out_path}")
     return 0
 

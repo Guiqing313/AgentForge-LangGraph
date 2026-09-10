@@ -42,11 +42,16 @@ def test_paid_provider_requires_verified_prices():
         ensure_paid_provider_allowed("deepseek", allow_paid=True, prices={"verified_at": None})
 
 
-def test_default_prices_unverified_blocks_paid():
+def test_default_prices_verified_after_user_authorization():
+    """用户 2026-09-10 授权按占位价执行 DeepSeek 对比后，默认价格表应已确认。"""
     table = load_prices()
-    assert table["verified_at"] is None
+    assert table["verified_at"] == "2026-09-10"
+    ensure_paid_provider_allowed("deepseek", allow_paid=True, prices=table)
+
+
+def test_unverified_prices_block_paid():
     with pytest.raises(PaidProviderNotVerified):
-        ensure_paid_provider_allowed("deepseek", allow_paid=True, prices=table)
+        ensure_paid_provider_allowed("deepseek", allow_paid=True, prices={"verified_at": None})
 
 
 def test_require_paid_usage_fail_closed():
