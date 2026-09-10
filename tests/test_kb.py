@@ -61,10 +61,14 @@ def test_build_and_query_with_fake_embedding(tmp_path, monkeypatch):
 
 
 def test_private_interview_doc_not_in_corpus():
-    """用户 2026-09-10 决定不公开面试笔记，语料目录不得包含该文件。"""
+    """用户 2026-09-10 决定不公开面试笔记，语料目录与 manifest 列表都不得包含该文件。"""
+    import json
+
     from app.config import settings
 
     corpus = Path(settings.docs_dir)
     assert not (corpus / "AI应用实习面试学习文档.md").exists()
-    manifest = (corpus / "manifest.json").read_text(encoding="utf-8")
-    assert "AI应用实习面试学习文档" not in manifest
+    manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
+    files = [doc.get("file", "") for doc in manifest.get("documents", [])]
+    sources = [doc.get("source_path", "") for doc in manifest.get("documents", [])]
+    assert all("面试" not in item for item in files + sources)
