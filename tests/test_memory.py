@@ -3,9 +3,9 @@
 from dataclasses import replace
 
 from app.config import settings
+from app.kb.embedding import DeterministicHashEmbeddingFunction
 from app.llm.factory import MockLLM
 from app.services.memory_service import MemoryRecord, MemoryService
-from app.kb.embedding import DeterministicHashEmbeddingFunction
 
 
 def _service(tmp_path, name="test_memory"):

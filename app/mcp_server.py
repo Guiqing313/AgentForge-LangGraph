@@ -10,9 +10,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from fastmcp import FastMCP  # noqa: E402
-from app.tools.search import WebSearchTool  # noqa: E402
-from app.tools.rag import LocalSearchTool  # noqa: E402
+
 from app.tools.calculator import CalculatorTool  # noqa: E402
+from app.tools.rag import LocalSearchTool  # noqa: E402
+from app.tools.search import WebSearchTool  # noqa: E402
 
 mcp = FastMCP("AgentForge")
 

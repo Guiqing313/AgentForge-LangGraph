@@ -1,3 +1,4 @@
+# 直接依赖锁定（与 requirements.txt 保持一致；完整传递闭包由 CI 的 pip freeze 产物记录）
 # 后端
 fastapi==0.141.1
 uvicorn[standard]==0.52.3

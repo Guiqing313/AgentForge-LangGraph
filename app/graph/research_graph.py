@@ -16,7 +16,7 @@ from langgraph.graph import END, START, StateGraph
 from app.agents.analyzer import AnalyzerAgent
 from app.agents.planner import PlannerAgent
 from app.agents.reviewer import ReviewerAgent
-from app.agents.searcher import SearchOutcome, SearcherAgent
+from app.agents.searcher import SearcherAgent, SearchOutcome
 from app.agents.writer import WriterAgent
 from app.config import settings
 from app.graph.state import ResearchState
