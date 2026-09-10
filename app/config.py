@@ -74,6 +74,16 @@ class Settings:
     chroma_collection: str = field(default_factory=lambda: _get("CHROMA_COLLECTION", "agentforge_kb"))
     memory_collection: str = field(default_factory=lambda: _get("MEMORY_COLLECTION", "agent_memory"))
 
+    # ---- Embedding（A1：本地 bge-m3 HTTP 服务，复用 SmartKB2.0 权重） ----
+    embedding_provider: str = field(default_factory=lambda: _get("EMBEDDING_PROVIDER", "http").strip().lower())
+    embedding_base_url: str = field(default_factory=lambda: _get("EMBEDDING_BASE_URL", "http://127.0.0.1:11435"))
+    embedding_model: str = field(default_factory=lambda: _get("EMBEDDING_MODEL", "bge-m3"))
+    embedding_dim: int = field(default_factory=lambda: _get_int("EMBEDDING_DIM", 1024))
+
+    # ---- 知识库文档与分块 ----
+    docs_dir: str = field(default_factory=lambda: _get("DOCS_DIR", str(BASE_DIR / "docs" / "kb")))
+    chunk_size: int = field(default_factory=lambda: _get_int("CHUNK_SIZE", 500))
+    chunk_overlap: int = field(default_factory=lambda: _get_int("CHUNK_OVERLAP", 50))
     # ---- 数据库 ----
     database_url: str = field(default_factory=lambda: _get("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'agentforge.db'}"))
 

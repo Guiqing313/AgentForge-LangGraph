@@ -17,3 +17,4 @@ data/uvicorn*.log
 dist/
 build/
 *.egg-info/
+data/embed_server*.log
