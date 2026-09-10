@@ -26,15 +26,15 @@ worktree：`D:\codex使用文件夹\AgentForge-v2`
 | mock e2e 当前失败 | `LLM_MODE=mock python scripts/run_e2e.py "冒烟主题"` → `RuntimeError: 缺少 DEEPSEEK_API_KEY`（`settings.validate_for_live()` 无条件调用） | A3 修复：mock 模式跳过 live 校验 |
 | reviewer 分数不一致 | prompt 写 8 分合格，配置默认 7 分 | A3 统一 |
 | 图文档与实现不一致 | docstring/README 画图级搜索循环，`build()` 无该边 | A3 按实现修正文档 |
-| Ollama 未运行 | `http://127.0.0.1:11434/api/version` 连接被拒 | **G0 待办**：需用户启动（或授权 AI 启动） |
+| Ollama 已运行 | `http://127.0.0.1:11434/api/version` → `{"version":"0.32.9"}`；`/api/tags` → `nomic-embed-text:latest`(274MB)、`qwen2.5:7b`(4.68GB) | ✅ 已通过（2026-09-10 用户启动） |
 | OLLAMA_MODELS 未设置 | 用户/系统环境变量为空；模型 manifest 实际在 `D:\OllamaModels` | G0/A0：启动前显式设置 |
 | 模型存在 | `D:\OllamaModels\manifests\...\qwen2.5\7b`、`...\nomic-embed-text\latest` | 启动后 `ollama list` 复核 |
 
 ## 3. G0 结论
 
 - 可执行部分：**通过**（worktree、依赖基线、22 测试、bge-m3 预检、语料扫描）。
-- 阻塞项：Ollama 服务器未运行，无法完成 `ollama list` 与 live smoke。
-- 下一步：用户启动 Ollama（或授权 AI 以提权方式启动）后补记本文件，再签署 Gate G0。
+- Ollama 已由用户启动并通过 HTTP API 验证（v0.32.9；两个模型可见）。沙箱内 ollama.exe 仍被拒绝执行，但项目代码走 HTTP API，不受影响。
+- G0 结论：**通过**（2026-09-10）。可进入 Phase A0/A1。
 
 ## 4. 复现命令
 
