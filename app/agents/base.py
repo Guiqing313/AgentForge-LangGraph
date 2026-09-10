@@ -1,7 +1,7 @@
 """Agent 基类：封装 LLM 调用与稳健的 JSON 解析。
 
 所有 Agent 共享两个能力：
-1. ``_chat``     —— 纯文本对话；
+1. ``_chat``     —— 纯文本对话（同时向 UsageTracker 记录耗时/用量）；
 2. ``_chat_json``—— 要求模型返回 JSON 并从输出中稳健提取。
 """
 
@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from typing import Any
 
+from app.config import settings
 from app.llm.factory import get_llm
+from app.observability import current_tracker
 
 
 class SimpleMessage:
@@ -77,13 +80,50 @@ class BaseAgent:
         self.llm = get_llm()
 
     def _chat(self, system_prompt: str, user_prompt: str) -> str:
-        response = self.llm.invoke(
-            [
-                _make_message("system", system_prompt),
-                _make_message("human", user_prompt),
-            ]
-        )
+        tracker = current_tracker()
+        start = time.perf_counter()
+        try:
+            response = self.llm.invoke(
+                [
+                    _make_message("system", system_prompt),
+                    _make_message("human", user_prompt),
+                ]
+            )
+        except Exception as exc:  # noqa: BLE001 —— 记录失败后向上抛出，保持原语义
+            if tracker is not None:
+                tracker.record_llm(
+                    provider=settings.effective_provider,
+                    latency_ms=(time.perf_counter() - start) * 1000,
+                    model=self._model_name(),
+                    ok=False,
+                    error=str(exc),
+                )
+            raise
+        latency_ms = (time.perf_counter() - start) * 1000
+        if tracker is not None:
+            usage = getattr(response, "usage_metadata", None) or {}
+            tracker.record_llm(
+                provider=settings.effective_provider,
+                latency_ms=latency_ms,
+                prompt_tokens=usage.get("input_tokens"),
+                completion_tokens=usage.get("output_tokens"),
+                model=self._model_name(),
+            )
         return response.content
 
     def _chat_json(self, system_prompt: str, user_prompt: str) -> Any:
-        return extract_json(self._chat(system_prompt, user_prompt))
+        raw = self._chat(system_prompt, user_prompt)
+        try:
+            return extract_json(raw)
+        except Exception:
+            tracker = current_tracker()
+            if tracker is not None:
+                tracker.record_json_failure()
+            raise
+
+    def _model_name(self) -> str:
+        if settings.effective_provider == "ollama":
+            return settings.ollama_model
+        if settings.effective_provider == "deepseek":
+            return settings.deepseek_model
+        return "mock"

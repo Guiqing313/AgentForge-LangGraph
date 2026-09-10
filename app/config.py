@@ -3,7 +3,8 @@
 集中管理所有配置项，支持项目根目录 .env 文件与环境变量覆盖。
 设计原则：
 - 所有 secret（API Key）缺失时给出清晰错误，而非运行时突然崩溃；
-- 提供安全默认值，保证 mock 模式（无 key）也能跑通流程。
+- 提供安全默认值，保证 mock 模式（无 key）也能跑通流程；
+- 通过 LLM_PROVIDER 选择 ollama（默认，本地）/ deepseek（付费对比）/ mock（离线测试）。
 """
 
 from __future__ import annotations
@@ -48,11 +49,19 @@ def _get_float(key: str, default: float) -> float:
 class Settings:
     """全局配置对象（frozen，避免运行期被意外修改）。"""
 
-    # ---- LLM ----
+    # ---- LLM provider 选择：ollama | deepseek | mock ----
+    llm_provider: str = field(default_factory=lambda: _get("LLM_PROVIDER", "ollama").strip().lower())
+
+    # ---- Ollama（本地，默认 provider；无 API 成本） ----
+    ollama_base_url: str = field(default_factory=lambda: _get("OLLAMA_BASE_URL", "http://127.0.0.1:11434/v1"))
+    ollama_model: str = field(default_factory=lambda: _get("OLLAMA_MODEL", "qwen2.5:7b"))
+
+    # ---- DeepSeek（付费对比，仅 1 次实验） ----
     deepseek_api_key: str = field(default_factory=lambda: _get("DEEPSEEK_API_KEY", ""))
     deepseek_base_url: str = field(default_factory=lambda: _get("DEEPSEEK_BASE_URL", "https://api.deepseek.com"))
     # 官方兼容模型名（DeepSeek 官方推荐 deepseek-chat / deepseek-reasoner）
     deepseek_model: str = field(default_factory=lambda: _get("DEEPSEEK_MODEL", "deepseek-chat"))
+
     llm_temperature: float = field(default_factory=lambda: _get_float("LLM_TEMPERATURE", 0.3))
     llm_max_tokens: int = field(default_factory=lambda: _get_int("LLM_MAX_TOKENS", 4096))
 
@@ -62,6 +71,8 @@ class Settings:
 
     # ---- 向量库（RAG 工具与长期记忆共用） ----
     chroma_persist_dir: str = field(default_factory=lambda: _get("CHROMA_PERSIST_DIR", str(BASE_DIR / "data" / "chroma")))
+    chroma_collection: str = field(default_factory=lambda: _get("CHROMA_COLLECTION", "agentforge_kb"))
+    memory_collection: str = field(default_factory=lambda: _get("MEMORY_COLLECTION", "agent_memory"))
 
     # ---- 数据库 ----
     database_url: str = field(default_factory=lambda: _get("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'agentforge.db'}"))
@@ -71,21 +82,34 @@ class Settings:
     review_pass_score: int = field(default_factory=lambda: _get_int("REVIEW_PASS_SCORE", 7))
     max_sub_questions: int = field(default_factory=lambda: _get_int("MAX_SUB_QUESTIONS", 5))
 
-    # ---- 运行模式：live（真实 LLM）/ mock（离线验证编排逻辑） ----
+    # ---- 运行模式（向后兼容）：mock 时强制离线；live 时按 llm_provider 选择 ----
     llm_mode: str = field(default_factory=lambda: _get("LLM_MODE", "live").strip().lower())
 
     @property
+    def effective_provider(self) -> str:
+        """真实生效的 provider（考虑 mock 模式与 DeepSeek 缺 key 的降级）。"""
+        if self.llm_mode == "mock":
+            return "mock"
+        provider = self.llm_provider if self.llm_provider in ("ollama", "deepseek", "mock") else "ollama"
+        if provider == "deepseek" and not self.deepseek_api_key:
+            return "mock"
+        return provider
+
+    @property
     def llm_configured(self) -> bool:
-        """是否已配置真实 LLM 所需的 API Key。"""
-        return bool(self.deepseek_api_key)
+        """当前是否具备真实调用条件（Ollama 本地视为已配置）。"""
+        return self.effective_provider != "mock"
 
     def validate_for_live(self) -> None:
         """真实运行前校验必要配置，缺失时抛出可读错误。"""
-        if not self.deepseek_api_key:
+        provider = self.effective_provider
+        if provider == "mock":
             raise RuntimeError(
-                "缺少 DEEPSEEK_API_KEY。请在项目根目录 .env 中配置，"
-                "或设置 LLM_MODE=mock 进行离线流程验证。"
+                "当前为 mock 模式（LLM_MODE=mock，或 LLM_PROVIDER=deepseek 但缺少 DEEPSEEK_API_KEY）。"
+                "请在 .env 配置 LLM_PROVIDER=ollama 使用本地模型，或配置 DeepSeek key。"
             )
+        if provider == "deepseek" and not self.deepseek_api_key:
+            raise RuntimeError("缺少 DEEPSEEK_API_KEY。请在项目根目录 .env 中配置。")
 
 
 settings = Settings()

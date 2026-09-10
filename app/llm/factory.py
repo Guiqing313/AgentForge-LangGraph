@@ -1,9 +1,10 @@
-"""LLM 工厂：统一创建 live / mock 两种模式的模型实例。
+"""LLM 工厂：统一创建 ollama / deepseek / mock 三种模式的模型实例。
 
-live 模式：通过 DeepSeek 的 OpenAI 兼容接口调用真实大模型。
-mock 模式：返回确定性输出，用于单元测试与无 API Key 时的离线流程验证。
+- ollama（默认）：调用本地 Ollama 的 OpenAI 兼容接口，无 API 成本；
+- deepseek：调用 DeepSeek 的 OpenAI 兼容接口（付费，仅用于 1 次对比实验）；
+- mock：确定性输出，用于单元测试与无外部依赖时的离线流程验证。
 
-两个模式暴露相同的 ``invoke(messages)`` 接口，上层 Agent 代码无需感知差异。
+三种模式暴露相同的 ``invoke(messages)`` 接口，上层 Agent 代码无需感知差异。
 """
 
 from __future__ import annotations
@@ -70,14 +71,31 @@ class MockLLM:
         return "{}"
 
 
+def get_provider_name() -> str:
+    """返回真实生效的 provider 名称（ollama / deepseek / mock）。"""
+    return settings.effective_provider
+
+
 def get_llm() -> Any:
-    """根据配置返回 live 或 mock 模型实例。"""
-    mode = settings.llm_mode
-    if mode == "mock" or (mode == "live" and not settings.llm_configured):
+    """根据配置返回 ollama / deepseek / mock 模型实例。"""
+    provider = settings.effective_provider
+    if provider == "mock":
         return MockLLM()
 
     from langchain_openai import ChatOpenAI
 
+    if provider == "ollama":
+        return ChatOpenAI(
+            api_key="ollama",  # Ollama 不校验 key，但 OpenAI 客户端要求非空
+            base_url=settings.ollama_base_url,
+            model=settings.ollama_model,
+            temperature=settings.llm_temperature,
+            max_tokens=settings.llm_max_tokens,
+            timeout=60,
+            max_retries=2,
+        )
+
+    # deepseek
     return ChatOpenAI(
         api_key=settings.deepseek_api_key,
         base_url=settings.deepseek_base_url,
