@@ -31,6 +31,11 @@ def _get(key: str, default: str = "") -> str:
     return value
 
 
+def _get_bool(key: str, default: bool) -> bool:
+    raw = _get(key, str(default)).strip().lower()
+    return raw in ("1", "true", "yes", "on")
+
+
 def _get_int(key: str, default: int) -> int:
     try:
         return int(_get(key, str(default)))
@@ -84,6 +89,11 @@ class Settings:
     docs_dir: str = field(default_factory=lambda: _get("DOCS_DIR", str(BASE_DIR / "docs" / "kb")))
     chunk_size: int = field(default_factory=lambda: _get_int("CHUNK_SIZE", 500))
     chunk_overlap: int = field(default_factory=lambda: _get_int("CHUNK_OVERLAP", 50))
+    # ---- Memory（A2：跨任务经验记忆；非完整短期/长期记忆系统） ----
+    memory_enabled: bool = field(default_factory=lambda: _get_bool("MEMORY_ENABLED", True))
+    memory_top_k: int = field(default_factory=lambda: _get_int("MEMORY_TOP_K", 3))
+    memory_max_chars: int = field(default_factory=lambda: _get_int("MEMORY_MAX_CHARS", 1500))
+    memory_min_similarity: float = field(default_factory=lambda: _get_float("MEMORY_MIN_SIMILARITY", 0.35))
     # ---- 数据库 ----
     database_url: str = field(default_factory=lambda: _get("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'data' / 'agentforge.db'}"))
 

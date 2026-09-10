@@ -43,12 +43,17 @@ class ResearchGraph:
 
     def _plan_node(self, state: ResearchState) -> dict:
         topic = state["topic"]
-        sub_questions = self.planner.plan(topic)
+        memories = state.get("relevant_memories") or []
+        # 仅在确有记忆时传第二参数，保持与只接受 topic 的 FakePlanner 兼容
+        sub_questions = self.planner.plan(topic, memories) if memories else self.planner.plan(topic)
         return {
             "sub_questions": sub_questions,
             "current_question_index": 0,
             "status": "searching",
-            "log": [f"规划完成：分解为 {len(sub_questions)} 个子问题"],
+            "log": [
+                f"规划完成：分解为 {len(sub_questions)} 个子问题"
+                + (f"（注入 {len(memories)} 条历史记忆）" if memories else "")
+            ],
         }
 
     def _search_node(self, state: ResearchState) -> dict:

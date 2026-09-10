@@ -9,10 +9,12 @@ from typing import Any
 
 from sqlalchemy import select
 
+from app.config import settings
 from app.db.database import SessionLocal
 from app.db.models import ResearchTask
 from app.graph.research_graph import ResearchGraph
 from app.graph.state import initial_state
+from app.services.memory_service import MemoryRecord, MemoryService
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +97,16 @@ class TaskService:
 
         try:
             graph = ResearchGraph().build()
-            state = initial_state(task.topic)
+            memories: list[str] = []
+            if settings.memory_enabled:
+                try:
+                    hits = MemoryService().retrieve(task.topic)
+                    memories = [hit["document"] for hit in hits]
+                    if memories:
+                        logger.info("任务 %s 注入 %d 条历史记忆", task_id, len(memories))
+                except Exception:  # noqa: BLE001 —— 记忆失败不阻塞主任务
+                    logger.warning("记忆检索失败，降级为无记忆", exc_info=True)
+            state = initial_state(task.topic, relevant_memories=memories)
             # 同步图在独立线程中执行，避免阻塞事件循环
             final_state = await asyncio.to_thread(graph.invoke, state)
             serialized = _serialize_state(final_state)
@@ -114,7 +125,12 @@ class TaskService:
                 task.completed_at = datetime.now()
                 await session.commit()
                 await session.refresh(task)
-                return task
+            if settings.memory_enabled:
+                try:
+                    MemoryService().save(MemoryRecord.from_state(task.topic, task_id, serialized))
+                except Exception:  # noqa: BLE001 —— 记忆失败不影响任务完成
+                    logger.warning("记忆保存失败（不影响任务完成）", exc_info=True)
+            return task
         except Exception as exc:  # noqa: BLE001
             logger.exception("任务 %s 执行失败", task_id)
             async with SessionLocal() as session:

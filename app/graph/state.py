@@ -18,6 +18,9 @@ class ResearchState(TypedDict, total=False):
     # 输入
     topic: str
 
+    # 跨任务经验记忆（A2；由 task_service 注入，供 planner 参考）
+    relevant_memories: list[str]
+
     # 规划
     sub_questions: list[str]
     current_question_index: int
@@ -40,10 +43,11 @@ class ResearchState(TypedDict, total=False):
     log: Annotated[list[str], operator.add]
 
 
-def initial_state(topic: str) -> dict:
+def initial_state(topic: str, relevant_memories: list[str] | None = None) -> dict:
     """构造任务初始状态。"""
     return {
         "topic": topic,
+        "relevant_memories": relevant_memories or [],
         "sub_questions": [],
         "current_question_index": 0,
         "search_outcomes": {},

@@ -20,8 +20,15 @@ SYSTEM_PROMPT = """你是一名研究规划专家。给定一个研究主题，�
 class PlannerAgent(BaseAgent):
     """研究主题 -> 子问题列表。"""
 
-    def plan(self, topic: str) -> list[str]:
-        user = f"研究主题：{topic}\n请分解为 3-{settings.max_sub_questions} 个子问题。"
+    def plan(self, topic: str, memories: list[str] | None = None) -> list[str]:
+        background = ""
+        if memories:
+            joined = "\n".join(f"- {m}" for m in memories)[: settings.memory_max_chars]
+            background = (
+                "\n\n参考背景（来自历史任务，可能不完整，仅作参考，不得替代本次检索）：\n"
+                f"{joined}"
+            )
+        user = f"研究主题：{topic}{background}\n请分解为 3-{settings.max_sub_questions} 个子问题。"
         result = self._chat_json(SYSTEM_PROMPT, user)
 
         questions = result.get("sub_questions", []) if isinstance(result, dict) else []
