@@ -90,6 +90,9 @@ class Settings:
     chunk_size: int = field(default_factory=lambda: _get_int("CHUNK_SIZE", 500))
     chunk_overlap: int = field(default_factory=lambda: _get_int("CHUNK_OVERLAP", 50))
     # ---- Memory（A2：跨任务经验记忆；非完整短期/长期记忆系统） ----
+    # ---- 任务软超时（API 层；不能强制终止线程，见 A3 说明） ----
+    task_soft_timeout_seconds: int = field(default_factory=lambda: _get_int("TASK_SOFT_TIMEOUT_SECONDS", 900))
+
     memory_enabled: bool = field(default_factory=lambda: _get_bool("MEMORY_ENABLED", True))
     memory_top_k: int = field(default_factory=lambda: _get_int("MEMORY_TOP_K", 3))
     memory_max_chars: int = field(default_factory=lambda: _get_int("MEMORY_MAX_CHARS", 1500))

@@ -108,7 +108,19 @@ class TaskService:
                     logger.warning("记忆检索失败，降级为无记忆", exc_info=True)
             state = initial_state(task.topic, relevant_memories=memories)
             # 同步图在独立线程中执行，避免阻塞事件循环
-            final_state = await asyncio.to_thread(graph.invoke, state)
+            timeout = settings.task_soft_timeout_seconds
+            if timeout and timeout > 0:
+                try:
+                    final_state = await asyncio.wait_for(
+                        asyncio.to_thread(graph.invoke, state), timeout=timeout
+                    )
+                except asyncio.TimeoutError as exc:
+                    # 软超时：只取消 await，工作流线程可能仍在收尾；结果不会写回。
+                    raise RuntimeError(
+                        f"任务软超时（{timeout}s）；后台线程可能仍在收尾，本次结果不写回。"
+                    ) from exc
+            else:
+                final_state = await asyncio.to_thread(graph.invoke, state)
             serialized = _serialize_state(final_state)
 
             async with SessionLocal() as session:
@@ -135,7 +147,10 @@ class TaskService:
             logger.exception("任务 %s 执行失败", task_id)
             async with SessionLocal() as session:
                 task = await session.get(ResearchTask, task_id)
-                task.status = "failed"
-                task.error = str(exc)
-                await session.commit()
+                if task is None:
+                    logger.warning("任务 %s 记录已不存在，跳过失败状态写回", task_id)
+                else:
+                    task.status = "failed"
+                    task.error = str(exc)
+                    await session.commit()
             raise

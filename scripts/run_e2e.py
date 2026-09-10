@@ -22,13 +22,20 @@ from app.graph.research_graph import ResearchGraph  # noqa: E402
 from app.graph.state import initial_state  # noqa: E402
 
 
+def needs_live_validation() -> bool:
+    """mock 模式无需真实 key；仅真实 provider 校验配置。"""
+    return settings.effective_provider != "mock"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="AgentForge 端到端运行")
     parser.add_argument("topic", type=str, help="研究主题")
-    parser.add_argument("--out", type=str, default=str(ROOT / "data" / "run_result.json"))
+    default_name = "run_result.mock.json" if settings.effective_provider == "mock" else "run_result.json"
+    parser.add_argument("--out", type=str, default=str(ROOT / "data" / default_name))
     args = parser.parse_args()
 
-    settings.validate_for_live()
+    if needs_live_validation():
+        settings.validate_for_live()
 
     graph = ResearchGraph().build()
     state = initial_state(args.topic)

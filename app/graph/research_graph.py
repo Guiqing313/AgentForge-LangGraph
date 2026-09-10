@@ -1,10 +1,10 @@
 """AgentForge 研究协作工作流图。
 
-工作流：
-  START -> planner -> searcher -(仍有子问题)-> searcher
-                          |-(搜索完成)-> analyzer -> writer -> reviewer
-                                                                    |-(合格/超轮次)-> END
-                                                                    |-(不合格)-> writer(修订)
+工作流（以实现为准）：
+  START -> planner -> searcher -> analyzer -> writer -> reviewer
+  - searcher 是单个节点：对全部子问题并行执行；每个子问题内部最多 2 轮（不足则改写查询词）。
+    （没有"搜索节点回到自身"的图级条件边——该循环在 SearcherAgent.search 内部。）
+  - reviewer 后条件边：合格或超过 max_review_rounds -> finalize；否则回 writer 修订。
 """
 
 from __future__ import annotations

@@ -91,6 +91,11 @@ async def get_report(task_id: int) -> dict:
 
 @router.delete("/{task_id}")
 async def delete_task(task_id: int) -> dict:
+    task = await TaskService.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if task.status in ("running", "paused"):
+        raise HTTPException(status_code=409, detail=f"任务正在执行（状态：{task.status}），不能删除")
     ok = await TaskService.delete_task(task_id)
     if not ok:
         raise HTTPException(status_code=404, detail="任务不存在")

@@ -5,14 +5,15 @@ from __future__ import annotations
 from typing import Any
 
 from app.agents.base import BaseAgent
+from app.config import settings
 
-SYSTEM_PROMPT = """你是一名严谨的研究报告审核专家。请从以下四个维度审核报告：
+SYSTEM_PROMPT_TEMPLATE = """你是一名严谨的研究报告审核专家。请从以下四个维度审核报告：
 1. 完整性（是否覆盖所有子问题）；
 2. 准确性（结论是否有检索结果支撑）；
 3. 逻辑性（结构是否清晰、论证是否连贯）；
 4. 可读性（语言是否专业易懂）。
 
-评分规则：1-10 的整数，8 分及以上为合格。
+评分规则：1-10 的整数，__PASS_SCORE__ 分及以上为合格。
 
 只输出 JSON，不要输出解释文字。
 
@@ -25,12 +26,17 @@ SYSTEM_PROMPT = """你是一名严谨的研究报告审核专家。请从以下�
 """
 
 
+def system_prompt() -> str:
+    """按 settings.review_pass_score 渲染合格分，避免 prompt 与配置不一致。"""
+    return SYSTEM_PROMPT_TEMPLATE.replace("__PASS_SCORE__", str(settings.review_pass_score))
+
+
 class ReviewerAgent(BaseAgent):
     """报告 -> 评分与修改建议。"""
 
     def review(self, topic: str, draft: str) -> dict[str, Any]:
         user = f"研究主题：{topic}\n\n待审核报告：\n{draft}"
-        result = self._chat_json(SYSTEM_PROMPT, user)
+        result = self._chat_json(system_prompt(), user)
 
         if not isinstance(result, dict):
             raise ValueError(f"审核 Agent 返回格式错误：{result!r}")
