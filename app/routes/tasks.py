@@ -8,6 +8,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
+from app.config import settings
 from app.services.task_service import TaskService
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -18,6 +19,10 @@ _background_tasks: set[asyncio.Task] = set()
 
 class TaskCreate(BaseModel):
     topic: str = Field(..., min_length=1, max_length=500, description="研究主题")
+
+
+class ResumeRequest(BaseModel):
+    sub_questions: list[str] = Field(default_factory=list, description="用户编辑后的子问题（空则沿用原提案）")
 
 
 def _task_to_dict(task: Any) -> dict:
@@ -50,7 +55,8 @@ def _task_detail(task: Any) -> dict:
 @router.post("", status_code=201)
 async def create_task(payload: TaskCreate) -> dict:
     task = await TaskService.create_task(payload.topic)
-    bg = asyncio.create_task(TaskService.run_task(task.id))
+    runner = TaskService.run_task_with_review if settings.human_review_enabled else TaskService.run_task
+    bg = asyncio.create_task(runner(task.id))
     _background_tasks.add(bg)
     bg.add_done_callback(_background_tasks.discard)
     return {"code": 200, "message": "success", "data": _task_to_dict(task)}
@@ -100,3 +106,17 @@ async def delete_task(task_id: int) -> dict:
     if not ok:
         raise HTTPException(status_code=404, detail="任务不存在")
     return {"code": 200, "message": "success", "data": None}
+
+@router.post("/{task_id}/resume")
+async def resume_task(task_id: int, payload: ResumeRequest) -> dict:
+    """恢复被 interrupt 暂停的任务（B1 人机协同）。"""
+    task = await TaskService.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if task.status != "paused":
+        raise HTTPException(status_code=409, detail=f"任务当前状态为 {task.status}，只有 paused 可以恢复")
+    try:
+        updated = await TaskService.resume_task(task_id, payload.sub_questions)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"code": 200, "message": "success", "data": _task_detail(updated)}

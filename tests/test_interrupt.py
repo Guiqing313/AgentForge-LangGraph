@@ -86,3 +86,33 @@ def test_resume_with_empty_edit_falls_back_to_proposed():
     second = graph.invoke(Command(resume=[]), config)
     assert second["status"] == "completed"
     assert searcher.received == ["原始1", "原始2"]
+
+
+def test_task_service_review_flow(monkeypatch, tmp_path):
+    """B1 服务级：create → paused → resume(编辑后的子问题) → completed。"""
+    import asyncio
+    from dataclasses import replace
+
+    import app.services.task_service as svc
+    from app.config import settings
+    from app.db.database import init_db
+    from app.services.memory_service import MemoryService
+
+    monkeypatch.setattr(svc, "settings", replace(settings, checkpoint_db=str(tmp_path / "checkpoints.sqlite")))
+    monkeypatch.setattr(MemoryService, "retrieve", lambda self, topic: [])
+    monkeypatch.setattr(MemoryService, "save", lambda self, record: None)
+
+    async def scenario2():
+        await init_db()
+        task = await svc.TaskService.create_task("B1 非法恢复测试")
+        with pytest.raises(ValueError):
+            await svc.TaskService.resume_task(task.id, ["x"])  # pending 不可恢复
+
+        task2 = await svc.TaskService.create_task("B1 服务流测试 2")
+        paused = await svc.TaskService.run_task_with_review(task2.id)
+        assert paused.status == "paused"
+        done = await svc.TaskService.resume_task(task2.id, ["编辑A", "编辑B"])
+        assert done.status == "completed"
+        assert done.sub_questions == ["编辑A", "编辑B"]
+
+    asyncio.run(scenario2())

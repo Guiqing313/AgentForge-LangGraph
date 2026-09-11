@@ -72,3 +72,38 @@ def test_report_200_and_running_delete_conflict(monkeypatch):
 
         _set_status(task_id, "running")
         assert client.delete(f"/api/tasks/{task_id}").status_code == 409
+
+
+def test_resume_endpoint_404_and_409(monkeypatch):
+    async def fake_run_task(task_id):
+        return None
+
+    monkeypatch.setattr(routes.TaskService, "run_task", fake_run_task)
+
+    with TestClient(app) as client:
+        assert client.post("/api/tasks/999999/resume", json={"sub_questions": []}).status_code == 404
+        task_id = client.post("/api/tasks", json={"topic": "resume 测试"}).json()["data"]["id"]
+        assert client.post(f"/api/tasks/{task_id}/resume", json={"sub_questions": []}).status_code == 409
+
+
+def test_insights_endpoints(monkeypatch):
+    with TestClient(app) as client:
+        stats = client.get("/api/kb/stats")
+        assert stats.status_code == 200
+        body = stats.json()
+        assert body["document_count"] == 5
+        assert body["collection_count"] >= 1
+
+        search = client.post("/api/kb/search", json={"query": "RAG 的完整流程是什么？", "n_results": 3})
+        assert search.status_code == 200
+        assert search.json()["count"] >= 1
+
+        live = client.get("/api/experiments/live")
+        assert live.status_code == 200
+        assert "available" in live.json()
+
+        info = client.get("/api/system/info")
+        assert info.status_code == 200
+        payload = info.json()
+        assert payload["limits"]["max_llm_calls_per_task"] >= 1
+        assert "mcp_tools" in payload

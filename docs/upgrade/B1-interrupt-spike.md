@@ -40,3 +40,28 @@ DEMO_OK
 ## 6. 边界
 - 本阶段全部使用 mock LLM（不调用 Ollama/DeepSeek）；真实生成路径的 interrupt/resume 演示待 Ollama 启动后可选补做。
 - checkpoint 数据库：`data/checkpoints.sqlite`（已加入 .gitignore：`*.sqlite`）。
+
+## 7. 端到端 API 验证（2026-09-11）
+启动：`LLM_MODE=mock HUMAN_REVIEW_ENABLED=true uvicorn app.main:app --port 8000`（mock 避免外部依赖）。
+
+流程与结果（任务 #3「B1 端到端测试：RAG 与 Agent」）：
+```
+status=completed
+sub_questions=编辑后的子问题A | 编辑后的子问题B
+review_rounds=1
+logs=规划完成：分解为 4 个子问题（注入 3 条历史记忆）
+   || 人工确认：2 个子问题
+   || 搜索完成「编辑后的子问题A」：1 条资料，1 轮
+   || 搜索完成「编辑后的子问题B」：1 条资料，1 轮
+   || 分析完成「编辑后的子问题A」：2 条关键发现
+   || 分析完成「编辑后的子问题B」：2 条关键发现
+   || 报告初稿完成
+   || 第1轮审核：7 分
+```
+结论：API 路径（`POST /api/tasks` → 轮询 paused → `POST /api/tasks/{id}/resume` → completed）真实工作；用户编辑的子问题被采用；记忆注入与任务守卫同样生效。
+
+## 8. 前端（v2.0）
+- 多页面：发起研究 / 任务历史 / 知识库 / 实验对比 / 系统信息；支持 URL 深链接（`?page=kb` 等）。
+- paused 任务：前端展示可编辑子问题 + "继续执行"按钮（调用 resume API）。
+- 知识库页：语料/分块统计 + 检索预览；实验对比页：Ollama vs DeepSeek 真实数据；系统页：provider/上限/价格授权/MCP 工具。
+- 截图：`ui_01_new_research.png` ~ `ui_05_history.png`（证据目录）。
