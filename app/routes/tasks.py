@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.services.task_service import TaskService
@@ -134,3 +137,48 @@ async def get_metrics(task_id: int) -> dict:
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
     return {"code": 200, "message": "success", "data": task.metrics or {}}
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.get("/{task_id}/stream")
+async def stream_task(task_id: int):
+    """SSE 事件流：status / log / node / done / error（不做断线续传）。"""
+    task = await TaskService.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+
+    async def event_generator():
+        last_status = None
+        sent_logs = 0
+        sent_nodes = 0
+        while True:
+            current = await TaskService.get_task(task_id)
+            if current is None:
+                yield _sse("error", {"error": "任务已不存在"})
+                return
+            if current.status != last_status:
+                last_status = current.status
+                yield _sse("status", {"status": last_status})
+            logs = current.logs or []
+            for line in logs[sent_logs:]:
+                sent_logs += 1
+                yield _sse("log", {"line": line})
+            metrics = current.metrics or {}
+            for node in (metrics.get("node_latencies") or [])[sent_nodes:]:
+                sent_nodes += 1
+                yield _sse("node", node)
+            if current.status in ("completed", "failed", "canceled"):
+                if current.status == "completed":
+                    yield _sse("done", {"status": current.status})
+                else:
+                    yield _sse("error", {"status": current.status, "error": current.error or ""})
+                return
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
