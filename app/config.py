@@ -90,6 +90,10 @@ class Settings:
     chunk_size: int = field(default_factory=lambda: _get_int("CHUNK_SIZE", 500))
     chunk_overlap: int = field(default_factory=lambda: _get_int("CHUNK_OVERLAP", 50))
     # ---- Memory（A2：跨任务经验记忆；非完整短期/长期记忆系统） ----
+    # ---- 人机协同（B1 interrupt/resume） ----
+    human_review_enabled: bool = field(default_factory=lambda: _get_bool("HUMAN_REVIEW_ENABLED", False))
+    checkpoint_db: str = field(default_factory=lambda: _get("CHECKPOINT_DB", str(BASE_DIR / "data" / "checkpoints.sqlite")))
+
     # ---- 付费 provider 授权（默认关闭；TaskService 也会走同一套 gate） ----
     allow_paid_provider: bool = field(default_factory=lambda: _get_bool("ALLOW_PAID_PROVIDER", False))
     max_cost_cny_per_task: float = field(default_factory=lambda: _get_float("MAX_COST_CNY_PER_TASK", 2.0))

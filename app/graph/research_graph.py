@@ -13,6 +13,7 @@ import contextvars
 from typing import Any
 
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import interrupt
 
 from app.agents.analyzer import AnalyzerAgent
 from app.agents.planner import PlannerAgent
@@ -138,6 +139,27 @@ class ResearchGraph:
             "log": [f"第{review_rounds}轮审核：{result['score']} 分"],
         }
 
+    def _human_review_node(self, state: ResearchState) -> dict:
+        """planner 后暂停，等待用户确认/编辑子问题（需要 checkpointer）。"""
+        proposed = list(state.get("sub_questions") or [])
+        edited = interrupt({"sub_questions": proposed, "message": "请确认或编辑子问题后继续"})
+        if isinstance(edited, dict):
+            edited = edited.get("sub_questions")
+        questions: list[str] = []
+        seen: set[str] = set()
+        for question in edited or []:
+            if isinstance(question, str) and question.strip() and question.strip() not in seen:
+                seen.add(question.strip())
+                questions.append(question.strip())
+        if not questions:
+            questions = proposed
+        return {
+            "sub_questions": questions,
+            "current_question_index": 0,
+            "status": "searching",
+            "log": [f"人工确认：{len(questions)} 个子问题"],
+        }
+
     @staticmethod
     def _route_after_review(state: ResearchState) -> str:
         rounds = state.get("review_rounds", 0)
@@ -151,8 +173,14 @@ class ResearchGraph:
     def _finalize_node(self, state: ResearchState) -> dict:
         return {"final_report": state["draft_report"], "status": "completed"}
 
-    def build(self):
-        """构建并编译 LangGraph 工作流图。"""
+    def build(self, checkpointer=None, enable_human_review: bool = False):
+        """构建并编译 LangGraph 工作流图。
+
+        enable_human_review=True 时在 planner 后插入 human_review（interrupt），
+        必须提供 checkpointer；默认 False 保持既有行为不变。
+        """
+        if enable_human_review and checkpointer is None:
+            raise ValueError("enable_human_review=True 需要提供 checkpointer")
         graph = StateGraph(ResearchState)
         graph.add_node("planner", self._plan_node)
         graph.add_node("searcher", self._search_node)
@@ -162,7 +190,12 @@ class ResearchGraph:
         graph.add_node("finalize", self._finalize_node)
 
         graph.add_edge(START, "planner")
-        graph.add_edge("planner", "searcher")
+        if enable_human_review:
+            graph.add_node("human_review", self._human_review_node)
+            graph.add_edge("planner", "human_review")
+            graph.add_edge("human_review", "searcher")
+        else:
+            graph.add_edge("planner", "searcher")
         graph.add_edge("searcher", "analyzer")
         graph.add_edge("analyzer", "writer")
         graph.add_edge("writer", "reviewer")
@@ -173,4 +206,4 @@ class ResearchGraph:
         )
         graph.add_edge("finalize", END)
 
-        return graph.compile()
+        return graph.compile(checkpointer=checkpointer)
