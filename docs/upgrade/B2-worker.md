@@ -41,3 +41,24 @@ python scripts/e2e_review_flow.py --api-url http://127.0.0.1:8001
 见第 5 节（使用演示库 + mock + human review + 禁网）。
 
 ## 5. E2E 结果（待补）
+
+## 5. E2E 结果（进程内 ASGI TestClient，无端口）
+
+脚本：`scripts/e2e_review_flow_inprocess.py`（demo DB + mock + HUMAN_REVIEW_ENABLED=true + WORKER_ENABLED=true + WEB_SEARCH_ENABLED=false；TestClient 在进程内跑完 ASGI 生命周期，退出即释放 worker）。
+
+```
+[create] task_id=1 status=pending
+[poll] status=pending
+[poll] status=paused
+[paused] proposed=['背景与现状', '核心技术', '应用与落地', '挑战与趋势']
+[resume] status=completed
+[poll] status=completed
+[final] status=completed sub_questions=['E2E 编辑问题一', 'E2E 编辑问题二']
+E2E_OK
+```
+结论：worker 领取 pending → human_review 暂停 → /resume 采用编辑后的子问题 → completed，全链路通过；耗时约 1.3 秒。
+
+## 6. 卡顿事件复盘（重要）
+- 原因：把 `Start-Process ... uvicorn ...` 常驻服务与 health check 放在同一条 shell_command 中，工具等待进程树结束 → 调用不返回（约 22.8 分钟）；与后端逻辑无关（health 200、任务早已完成）。
+- 规避：常驻服务不放进会返回的 shell command；优先用 `TestClient`/ASGI 进程内测试；如必须起真实 uvicorn，用独立持久 session 启动、另一条命令跑 E2E、跑完显式停止并确认端口释放。
+- 本文件后续 E2E 一律使用进程内脚本。
