@@ -24,3 +24,16 @@ ruff check . → All checks passed!
 - 本次未调用 DeepSeek/Tavily，无新增外部支出。
 - `config/prices.json`：`verified_at=null`（官方未核验）、`authorized_at=2026-09-10`（用户授权占位价执行过一次对比）。
 - 上述修复需由「复测」复跑确认；结论以子代理报告为准。
+
+## 第三轮修复（2026-09-11，全局收口）
+
+针对「复测」第三轮发现的并发/完整性/路径覆盖问题，改为"单一收口点 + 原子预留"：
+
+| 第三轮发现 | 修复 |
+|---|---|
+| 并发下 LLM 上限可被突破 | `UsageTracker` 内部加锁；`reserve_llm()`/`reserve_search()` 在锁内同时检查**累计启动数**（上限）与在途预留；并发测试 `test_concurrent_llm_reservation_is_atomic`（5 线程、上限 1 → 恰好 1 次通过） |
+| 价格完整性漏 Tavily 费率 | `_rates_valid` 对 DeepSeek 同时要求 `input/output` 与 `tavily.per_credit_cny`；`test_missing_tavily_rate_blocks_deepseek` |
+| TaskService/API 未接入限制 | `TaskService.run_task` 用同一个 `observability.track(...)` 包裹 `graph.invoke`，并走付费 gate；`test_task_service_attaches_budget_guard` |
+| A5 旧测试数/旧语义 | 已更新为 77 项；旧"待授权/verified_at"段落已清理 |
+
+修复后回归：`pytest → 77 passed`、`ruff All checks passed!`。

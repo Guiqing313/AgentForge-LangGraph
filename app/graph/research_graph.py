@@ -20,6 +20,7 @@ from app.agents.reviewer import ReviewerAgent
 from app.agents.searcher import SearcherAgent, SearchOutcome
 from app.agents.writer import WriterAgent
 from app.config import settings
+from app.cost import BudgetExceeded
 from app.graph.state import ResearchState
 
 
@@ -76,6 +77,8 @@ class ResearchGraph:
                 question = future_map[future]
                 try:
                     outcome = future.result()
+                except BudgetExceeded:
+                    raise  # 硬停止：预算/调用上限不得被降级为"搜索失败"
                 except Exception as exc:  # noqa: BLE001
                     outcome = SearchOutcome(
                         question=question,

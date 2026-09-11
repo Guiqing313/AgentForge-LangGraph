@@ -58,7 +58,9 @@ def _valid_rate(value: object) -> bool:
 def _rates_valid(provider: str, table: dict) -> bool:
     entry = table.get(provider) or {}
     if provider == "deepseek":
-        return _valid_rate(entry.get("input_per_million_cny")) and _valid_rate(entry.get("output_per_million_cny"))
+        deepseek_ok = _valid_rate(entry.get("input_per_million_cny")) and _valid_rate(entry.get("output_per_million_cny"))
+        tavily_ok = _valid_rate((table.get("tavily") or {}).get("per_credit_cny"))
+        return deepseek_ok and tavily_ok
     if provider == "tavily":
         return _valid_rate(entry.get("per_credit_cny"))
     return False

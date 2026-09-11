@@ -129,28 +129,62 @@ def test_upper_bound_covers_recorded_deepseek_task():
 def test_llm_call_cap_and_task_tavily_cap():
     """运行时硬上限必须真实生效（LLM 调用数与单任务 Tavily 数）。"""
     from app import observability
-    from app.tools import search as search_mod
 
-    with observability.track(task_id=1, max_llm_calls=1) as tracker:
+    with observability.track(task_id=1, provider="ollama", max_llm_calls=1) as tracker:
+        tracker.reserve_llm()
         tracker.record_llm(provider="ollama", latency_ms=1.0)
-        with pytest.raises(RuntimeError):
-            tracker.ensure_llm_capacity()
+        with pytest.raises(BudgetExceeded):
+            tracker.reserve_llm()
 
-    search_mod.configure_limits(10)
-    search_mod.start_task_limits(1)
-    try:
-        tool = search_mod.WebSearchTool(tavily_api_key="fake", use_cache=False)
+    with observability.track(task_id=2, provider="ollama", max_tavily_calls=1) as tracker:
+        tracker.reserve_search("tavily")
+        tracker.record_search("tavily", "q1", True, 1)
+        with pytest.raises(BudgetExceeded):
+            tracker.reserve_search("tavily")
 
-        def fake_tavily(query):
-            return [{"title": "t", "content": "c", "url": "u"}]
 
-        tool._search_tavily = fake_tavily
-        tool.search("t1")
-        with pytest.raises(RuntimeError):
-            tool.search("t2")
-    finally:
-        search_mod.configure_limits(None)
-        search_mod.start_task_limits(None)
+def test_concurrent_llm_reservation_is_atomic():
+    """复测第三轮 P1-A：并发下也不得突破 LLM 上限。"""
+    import threading
+
+    from app import observability
+
+    with observability.track(task_id=1, provider="ollama", max_llm_calls=1) as tracker:
+        barrier = threading.Barrier(5)
+        results: list[str] = []
+        lock = threading.Lock()
+
+        def worker():
+            barrier.wait()
+            try:
+                tracker.reserve_llm()
+                with lock:
+                    results.append("ok")
+            except BudgetExceeded:
+                with lock:
+                    results.append("blocked")
+
+        threads = [threading.Thread(target=worker) for _ in range(5)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    assert results.count("ok") == 1
+    assert results.count("blocked") == 4
+
+
+def test_missing_tavily_rate_blocks_deepseek():
+    """复测第三轮 P1-B：DeepSeek 价格完整性必须包含 Tavily 费率。"""
+    prices = {
+        "verified_at": "2026-09-10",
+        "deepseek": {
+            "verified_at": "2026-09-10",
+            "input_per_million_cny": 2.0,
+            "output_per_million_cny": 8.0,
+        },
+    }
+    assert price_status("deepseek", prices) == "unauthorized"
 
 
 def test_pre_task_budget_rejects_before_running():

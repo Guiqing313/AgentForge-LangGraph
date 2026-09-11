@@ -38,13 +38,7 @@ from app.cost import (  # noqa: E402
 )
 from app.graph.research_graph import ResearchGraph  # noqa: E402
 from app.graph.state import initial_state  # noqa: E402
-from app.tools.search import (  # noqa: E402
-    cache_size,
-    clear_cache,
-    configure_limits,
-    start_task_limits,
-    tavily_calls_used,
-)
+from app.tools.search import cache_size, clear_cache, configure_limits, tavily_calls_used  # noqa: E402
 
 DEFAULT_TOPICS = ["RAG 与 Agent 的区别", "大模型应用工程师需要哪些能力"]
 
@@ -80,9 +74,15 @@ def _run_topics(provider: str, topics: list[str], max_tavily_calls: int, max_cos
             max_prompt_tokens_per_call=settings.max_prompt_chars_per_call,
         )
         enforce_pre_task_budget(spent_cny=total_cost, upper_bound_cny=upper_bound, max_cost_cny=max_cost_cny)
-        start_task_limits(max_tavily_per_task)
 
-        with observability.track(task_id=index, max_llm_calls=settings.max_llm_calls_per_task) as tracker:
+        with observability.track(
+            task_id=index,
+            provider=provider,
+            max_llm_calls=settings.max_llm_calls_per_task,
+            max_tavily_calls=max_tavily_per_task,
+            max_cost_cny=max_cost_cny,
+            allow_paid=True,  # main() 已按 --allow-paid 与价格表 gate 校验
+        ) as tracker:
             start = time.perf_counter()
             result = graph.invoke(initial_state(topic))
             elapsed = round(time.perf_counter() - start, 2)

@@ -17,6 +17,7 @@ import logging
 import warnings
 
 from app.config import settings
+from app.observability import current_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +27,6 @@ _SEARCH_CACHE: dict[str, list[dict]] = {}
 # 外部搜索硬上限（A5 复测修复）：达到上限后不再发起 Tavily 调用
 MAX_TAVILY_CALLS: int | None = None
 TAVILY_CALL_COUNT = 0
-MAX_TAVILY_CALLS_PER_TASK: int | None = None
-TAVILY_TASK_COUNT = 0
 
 
 def configure_limits(max_tavily_calls: int | None) -> None:
@@ -40,25 +39,12 @@ def tavily_calls_used() -> int:
     return TAVILY_CALL_COUNT
 
 
-def start_task_limits(max_per_task: int | None) -> None:
-    """每个任务开始前调用：设置并重置单任务 Tavily 上限。"""
-    global MAX_TAVILY_CALLS_PER_TASK, TAVILY_TASK_COUNT
-    MAX_TAVILY_CALLS_PER_TASK = max_per_task
-    TAVILY_TASK_COUNT = 0
-
-
-def tavily_calls_used_in_task() -> int:
-    return TAVILY_TASK_COUNT
-
-
 def _reserve_tavily_call() -> None:
-    global TAVILY_CALL_COUNT, TAVILY_TASK_COUNT
+    """阶段级上限（跨任务）；单任务上限由 UsageTracker.reserve_search 负责。"""
+    global TAVILY_CALL_COUNT
     if MAX_TAVILY_CALLS is not None and TAVILY_CALL_COUNT >= MAX_TAVILY_CALLS:
         raise RuntimeError(f"Tavily 调用达到本阶段上限 {MAX_TAVILY_CALLS}，停止外部搜索")
-    if MAX_TAVILY_CALLS_PER_TASK is not None and TAVILY_TASK_COUNT >= MAX_TAVILY_CALLS_PER_TASK:
-        raise RuntimeError(f"Tavily 调用达到单任务上限 {MAX_TAVILY_CALLS_PER_TASK}，停止本任务外部搜索")
     TAVILY_CALL_COUNT += 1
-    TAVILY_TASK_COUNT += 1
 
 # duckduckgo-search 已更名为 ddgs，触发改名警告，此处静默处理
 warnings.filterwarnings("ignore", message=r".*renamed to.*ddgs.*")
@@ -99,17 +85,27 @@ class WebSearchTool:
         if self.tavily_api_key:
             # 硬上限：超出后直接抛出（由 SearcherAgent 记录降级），不得回退到其他外部搜索
             _reserve_tavily_call()
+            tracker = current_tracker()
+            if tracker is not None:
+                tracker.reserve_search("tavily")
             try:
                 results = self._search_tavily(query)
+            except Exception as exc:  # noqa: BLE001
+                if tracker is not None:
+                    tracker.record_search(backend="tavily", query=query, ok=False, error=str(exc))
+                logger.warning("Tavily 搜索失败，回退 DuckDuckGo：%s", exc)
+            else:
+                if tracker is not None:
+                    tracker.record_search(backend="tavily", query=query, ok=True, n_results=len(results))
                 self.last_backend = "tavily"
                 if self.use_cache:
                     _SEARCH_CACHE[query] = results
                 return results
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Tavily 搜索失败，回退 DuckDuckGo：%s", exc)
 
         results = self._search_duckduckgo(query)
         self.last_backend = "duckduckgo"
+        if current_tracker() is not None:
+            current_tracker().record_search(backend="duckduckgo", query=query, ok=True, n_results=len(results))
         if self.use_cache:
             _SEARCH_CACHE[query] = results
         return results

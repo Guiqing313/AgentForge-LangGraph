@@ -82,7 +82,7 @@ class BaseAgent:
     def _chat(self, system_prompt: str, user_prompt: str) -> str:
         tracker = current_tracker()
         if tracker is not None:
-            tracker.ensure_llm_capacity()
+            tracker.reserve_llm()
         limit = settings.max_prompt_chars_per_call
         prompt = user_prompt
         if limit and len(prompt) > limit:

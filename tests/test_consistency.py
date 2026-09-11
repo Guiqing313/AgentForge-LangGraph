@@ -91,3 +91,42 @@ def test_mock_llm_still_works():
 def test_tests_use_isolated_database():
     # 复测 P2-2：conftest 强制覆盖 DATABASE_URL，测试不得连接真实库
     assert "agentforge_test_" in settings.database_url
+
+
+def test_task_service_attaches_budget_guard(monkeypatch):
+    """复测第三轮 P1-C：普通 TaskService 路径也必须接入同一套单任务守卫。"""
+    import asyncio
+
+    import app.services.task_service as svc
+    from app import observability
+    from app.cost import BudgetExceeded
+    from app.db.database import init_db
+    from app.services.memory_service import MemoryService
+
+    class FakeGraph:
+        def build(self):
+            class _Graph:
+                def invoke(self, state):
+                    tracker = observability.current_tracker()
+                    assert tracker is not None
+                    assert tracker.max_llm_calls == settings.max_llm_calls_per_task
+                    assert tracker.max_tavily_calls == settings.max_tavily_calls_per_task
+                    raise BudgetExceeded("test budget stop")
+
+            return _Graph()
+
+    monkeypatch.setattr(svc, "ResearchGraph", FakeGraph)
+    monkeypatch.setattr(MemoryService, "retrieve", lambda self, topic: [])
+    monkeypatch.setattr(MemoryService, "save", lambda self, record: None)
+
+    async def scenario():
+        await init_db()
+        task = await svc.TaskService.create_task("预算守卫测试")
+        with pytest.raises(BudgetExceeded):
+            await svc.TaskService.run_task(task.id)
+        saved = await svc.TaskService.get_task(task.id)
+        assert saved is not None
+        assert saved.status == "failed"
+        assert "test budget stop" in (saved.error or "")
+
+    asyncio.run(scenario())

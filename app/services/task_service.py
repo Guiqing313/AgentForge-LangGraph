@@ -8,6 +8,7 @@ from datetime import datetime
 
 from sqlalchemy import select
 
+from app import observability
 from app.config import settings
 from app.db.database import SessionLocal
 from app.db.models import ResearchTask
@@ -107,19 +108,29 @@ class TaskService:
                     logger.warning("记忆检索失败，降级为无记忆", exc_info=True)
             state = initial_state(task.topic, relevant_memories=memories)
             # 同步图在独立线程中执行，避免阻塞事件循环
-            timeout = settings.task_soft_timeout_seconds
-            if timeout and timeout > 0:
-                try:
-                    final_state = await asyncio.wait_for(
-                        asyncio.to_thread(graph.invoke, state), timeout=timeout
-                    )
-                except asyncio.TimeoutError as exc:
-                    # 软超时：只取消 await，工作流线程可能仍在收尾；结果不会写回。
-                    raise RuntimeError(
-                        f"任务软超时（{timeout}s）；后台线程可能仍在收尾，本次结果不写回。"
-                    ) from exc
-            else:
-                final_state = await asyncio.to_thread(graph.invoke, state)
+            provider = settings.effective_provider
+            # 所有入口共用同一套单任务守卫；付费 provider 需 ALLOW_PAID_PROVIDER=true
+            with observability.track(
+                task_id=task_id,
+                provider=provider,
+                max_llm_calls=settings.max_llm_calls_per_task,
+                max_tavily_calls=settings.max_tavily_calls_per_task,
+                max_cost_cny=settings.max_cost_cny_per_task,
+                allow_paid=settings.allow_paid_provider,
+            ):
+                timeout = settings.task_soft_timeout_seconds
+                if timeout and timeout > 0:
+                    try:
+                        final_state = await asyncio.wait_for(
+                            asyncio.to_thread(graph.invoke, state), timeout=timeout
+                        )
+                    except asyncio.TimeoutError as exc:
+                        # 软超时：只取消 await，工作流线程可能仍在收尾；结果不会写回。
+                        raise RuntimeError(
+                            f"任务软超时（{timeout}s）；后台线程可能仍在收尾，本次结果不写回。"
+                        ) from exc
+                else:
+                    final_state = await asyncio.to_thread(graph.invoke, state)
             serialized = _serialize_state(final_state)
 
             async with SessionLocal() as session:

@@ -90,6 +90,10 @@ class Settings:
     chunk_size: int = field(default_factory=lambda: _get_int("CHUNK_SIZE", 500))
     chunk_overlap: int = field(default_factory=lambda: _get_int("CHUNK_OVERLAP", 50))
     # ---- Memory（A2：跨任务经验记忆；非完整短期/长期记忆系统） ----
+    # ---- 付费 provider 授权（默认关闭；TaskService 也会走同一套 gate） ----
+    allow_paid_provider: bool = field(default_factory=lambda: _get_bool("ALLOW_PAID_PROVIDER", False))
+    max_cost_cny_per_task: float = field(default_factory=lambda: _get_float("MAX_COST_CNY_PER_TASK", 2.0))
+
     # ---- 单任务硬上限（2026-09-11 复测修复：预检与运行时使用同一组值） ----
     max_tavily_calls_per_task: int = field(default_factory=lambda: _get_int("MAX_TAVILY_CALLS_PER_TASK", 15))
     max_llm_calls_per_task: int = field(default_factory=lambda: _get_int("MAX_LLM_CALLS_PER_TASK", 15))
