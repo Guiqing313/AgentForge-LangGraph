@@ -3,8 +3,8 @@
   "mode": "ollama+deepseek",
   "prices": {
     "checked_at": "2026-09-10",
-    "verified_at": "2026-09-10",
-    "note": "用户 2026-09-10 授权按本表占位价执行 DeepSeek 1 次对比（≤2 元）。执行后应复核官方价格。",
+    "verified_at": null,
+    "note": "用户 2026-09-10 授权按占位价执行过一次 DeepSeek 对比（已消费，authorization_consumed_at=2026-09-10）。再次付费运行需用户重新授权（更新 authorized_at 并清空 authorization_consumed_at）或提供官方价格核验（verified_at）。",
     "ollama": {
       "input_per_million_cny": 0,
       "output_per_million_cny": 0,
@@ -15,14 +15,18 @@
       "input_per_million_cny": 2.0,
       "output_per_million_cny": 8.0,
       "source": "待用户核对 DeepSeek 官方价格页",
-      "verified_at": "2026-09-10"
+      "verified_at": null,
+      "authorized_at": "2026-09-10"
     },
     "tavily": {
       "free_credits_per_month": 1000,
       "per_credit_cny": 0.058,
       "source": "待用户核对 Tavily 官方价格页（basic search 通常 1 credit）",
-      "verified_at": "2026-09-10"
-    }
+      "verified_at": null,
+      "authorized_at": "2026-09-10"
+    },
+    "authorized_at": "2026-09-10",
+    "authorization_consumed_at": "2026-09-10"
   },
   "ollama": {
     "provider": "ollama",
@@ -123,5 +127,6 @@
     "completion_tokens": 18738,
     "estimated_cost_cny": 2.5745
   },
-  "note": "真实运行记录。DeepSeek 阶段 2/2 完成，估算成本 ¥1.9945（其中 Tavily 30 credits ≈ ¥1.74、DeepSeek tokens ≈ ¥0.25），在用户授权的 ≤2 元范围内。两个 provider 的 planner 输出的子问题数不同（Ollama 3 vs DeepSeek 5），因此本次是**探索性对比**，不是控制变量实验。脚本在合并预算检查时中止（未写出 JSON），本文件由实际 stdout 记录重建；该预算语义已修复。"
+  "note": "真实运行记录。DeepSeek 阶段 2/2 完成，估算成本 ¥1.9945（其中 Tavily 30 credits ≈ ¥1.74、DeepSeek tokens ≈ ¥0.25），在用户授权的 ≤2 元范围内。两个 provider 的 planner 输出的子问题数不同（Ollama 3 vs DeepSeek 5），因此本次是**探索性对比**，不是控制变量实验。脚本在合并预算检查时中止（未写出 JSON），本文件由实际 stdout 记录重建；该预算语义已修复。 价格快照已于 2026-09-11 刷新为 verified_at=null + authorized_at（授权已消费）。",
+  "prices_updated_at": "2026-09-11"
 }

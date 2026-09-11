@@ -90,6 +90,11 @@ class Settings:
     chunk_size: int = field(default_factory=lambda: _get_int("CHUNK_SIZE", 500))
     chunk_overlap: int = field(default_factory=lambda: _get_int("CHUNK_OVERLAP", 50))
     # ---- Memory（A2：跨任务经验记忆；非完整短期/长期记忆系统） ----
+    # ---- 单任务硬上限（2026-09-11 复测修复：预检与运行时使用同一组值） ----
+    max_tavily_calls_per_task: int = field(default_factory=lambda: _get_int("MAX_TAVILY_CALLS_PER_TASK", 15))
+    max_llm_calls_per_task: int = field(default_factory=lambda: _get_int("MAX_LLM_CALLS_PER_TASK", 15))
+    max_prompt_chars_per_call: int = field(default_factory=lambda: _get_int("MAX_PROMPT_CHARS_PER_CALL", 8000))
+
     # ---- 任务软超时（API 层；不能强制终止线程，见 A3 说明） ----
     task_soft_timeout_seconds: int = field(default_factory=lambda: _get_int("TASK_SOFT_TIMEOUT_SECONDS", 900))
 

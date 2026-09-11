@@ -19,11 +19,17 @@ class UsageTracker:
     """一次研究任务的用量记录器。"""
 
     task_id: int | None = None
+    max_llm_calls: int | None = None
     started_at: float = field(default_factory=time.time)
 
     llm_calls: list[dict] = field(default_factory=list)
     search_calls: list[dict] = field(default_factory=list)
     json_parse_failures: int = 0
+
+    def ensure_llm_capacity(self) -> None:
+        """单任务 LLM 调用硬上限：达到上限即抛出，防止成本失控。"""
+        if self.max_llm_calls is not None and len(self.llm_calls) >= self.max_llm_calls:
+            raise RuntimeError(f"单任务 LLM 调用达到上限 {self.max_llm_calls}，中止以防超支")
 
     def record_llm(
         self,
@@ -86,9 +92,9 @@ def current_tracker() -> UsageTracker | None:
 
 
 @contextmanager
-def track(task_id: int | None = None) -> Iterator[UsageTracker]:
+def track(task_id: int | None = None, max_llm_calls: int | None = None) -> Iterator[UsageTracker]:
     """在 with 块内启用 tracker，块结束后恢复之前的值。"""
-    tracker = UsageTracker(task_id=task_id)
+    tracker = UsageTracker(task_id=task_id, max_llm_calls=max_llm_calls)
     token = _current_tracker.set(tracker)
     try:
         yield tracker

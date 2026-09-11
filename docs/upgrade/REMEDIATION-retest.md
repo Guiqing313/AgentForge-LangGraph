@@ -17,7 +17,7 @@
 ## 回归
 
 ```
-pytest → 68 passed
+pytest → 74 passed
 ruff check . → All checks passed!
 ```
 

@@ -38,7 +38,13 @@ from app.cost import (  # noqa: E402
 )
 from app.graph.research_graph import ResearchGraph  # noqa: E402
 from app.graph.state import initial_state  # noqa: E402
-from app.tools.search import cache_size, clear_cache, configure_limits, tavily_calls_used  # noqa: E402
+from app.tools.search import (  # noqa: E402
+    cache_size,
+    clear_cache,
+    configure_limits,
+    start_task_limits,
+    tavily_calls_used,
+)
 
 DEFAULT_TOPICS = ["RAG 与 Agent 的区别", "大模型应用工程师需要哪些能力"]
 
@@ -65,17 +71,18 @@ def _run_topics(provider: str, topics: list[str], max_tavily_calls: int, max_cos
     total_completion_tokens: int | None = 0
 
     for index, topic in enumerate(topics, start=1):
-        # 任务开始前的保守预检：宁可拒绝，也不先超支
-        remaining_tavily = max(max_tavily_calls - total_tavily, 0)
+        # 任务开始前预检：使用与运行时相同的单任务硬上限（Tavily/LLM/prompt）
         upper_bound = estimate_task_upper_bound_cny(
             provider=provider,
-            max_tavily_calls=min(remaining_tavily, max_tavily_per_task),
-            max_llm_calls=12,
+            max_tavily_calls=max_tavily_per_task,
+            max_llm_calls=settings.max_llm_calls_per_task,
             max_tokens_per_call=settings.llm_max_tokens,
+            max_prompt_tokens_per_call=settings.max_prompt_chars_per_call,
         )
         enforce_pre_task_budget(spent_cny=total_cost, upper_bound_cny=upper_bound, max_cost_cny=max_cost_cny)
+        start_task_limits(max_tavily_per_task)
 
-        with observability.track(task_id=index) as tracker:
+        with observability.track(task_id=index, max_llm_calls=settings.max_llm_calls_per_task) as tracker:
             start = time.perf_counter()
             result = graph.invoke(initial_state(topic))
             elapsed = round(time.perf_counter() - start, 2)
@@ -140,13 +147,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="AgentForge 本地 live 运行 + 成本闸门")
     parser.add_argument("--topics", nargs="+", default=DEFAULT_TOPICS)
     parser.add_argument("--max-tavily-calls", type=int, default=30)
-    parser.add_argument("--max-tavily-per-task", type=int, default=6, help="单任务预检使用的 Tavily 上界")
+    parser.add_argument("--max-tavily-per-task", type=int, default=0, help="单任务 Tavily 硬上限（0 表示用配置值）")
     parser.add_argument("--max-cost-cny", type=float, default=10.0, help="外部 API 总成本上限（默认 10 元）")
     parser.add_argument("--max-paid-cost-cny", type=float, default=2.0, help="付费 provider 阶段成本上限（默认 2 元）")
     parser.add_argument("--out", default=str(ROOT / "data" / "live_results.json"))
     parser.add_argument("--compare-deepseek", action="store_true", help="在 Ollama 之后用同一批搜索结果跑 1 次 DeepSeek 对比")
     parser.add_argument("--allow-paid", action="store_true", help="允许付费 provider（需价格表已由用户验证）")
     args = parser.parse_args()
+
+    if args.max_tavily_per_task <= 0:
+        args.max_tavily_per_task = settings.max_tavily_calls_per_task
 
     if settings.llm_mode == "mock":
         print("LLM_MODE=mock：live 运行需要 LLM_MODE=live")

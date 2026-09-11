@@ -21,9 +21,11 @@
 ## 2. 索引构建证据（v2）
 ```json
 {"documents": 5, "chunks": 222, "collection": "agentforge_kb", "collection_count": 222,
- "corpus_version": "f02f8c544f48d495", "rebuild": true}
+ "corpus_version": "b67a99a33425f68e", "rebuild": true}
 ```
 embedding 服务：`http://127.0.0.1:11435`（bge-m3，dim=1024，cosine，复用 SmartKB2.0 本地权重）。
+
+> 2026-09-11 复测修复：loader 改为按原始文件内容计算 sha256（strip 仅用于分块），真实 5 篇语料可重新构建；重建后 corpus_version = `b67a99a33425f68e`。
 
 ## 3. 检索质量（v2，10 条固定查询）
 口径：相关性 = 返回结果 source 命中期望文档且文本包含任一期望关键词；top-3 计算。

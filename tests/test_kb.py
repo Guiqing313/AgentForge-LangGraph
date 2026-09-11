@@ -101,3 +101,10 @@ def test_loader_rejects_manifest_sha_mismatch(tmp_path):
 
     with pytest.raises(ValueError):
         load_documents(docs_dir)
+
+
+def test_real_corpus_loads_with_manifest():
+    """复测 P2-3b：真实 5 篇语料必须能通过 manifest 校验并重建索引。"""
+    docs = load_documents(settings.docs_dir)
+    assert len(docs) == 5
+    assert all(d.sha256 for d in docs)

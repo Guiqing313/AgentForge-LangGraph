@@ -46,18 +46,39 @@ def _is_valid_date(value: object) -> bool:
     return True
 
 
+def _valid_rate(value: object) -> bool:
+    """费率必须是非负有限数；缺失/负数/NaN 一律视为无效。"""
+    try:
+        number = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return False
+    return number >= 0 and number == number and number != float("inf")
+
+
+def _rates_valid(provider: str, table: dict) -> bool:
+    entry = table.get(provider) or {}
+    if provider == "deepseek":
+        return _valid_rate(entry.get("input_per_million_cny")) and _valid_rate(entry.get("output_per_million_cny"))
+    if provider == "tavily":
+        return _valid_rate(entry.get("per_credit_cny"))
+    return False
+
+
 def price_status(provider: str, prices: dict | None = None) -> str:
     """返回 official / placeholder-authorized / unauthorized。
 
-    official：全局与 provider 的 verified_at 均为合法日期（官方价格已核验）。
-    placeholder-authorized：全局与 provider 的 authorized_at 均为合法日期（用户授权按占位价执行）。
+    official：全局与 provider 的 verified_at 均为合法日期，且费率字段完整有效。
+    placeholder-authorized：全局与 provider 的 authorized_at 合法、授权未被消费（authorization_consumed_at 为空），且费率字段完整有效。
     """
-    table = prices or load_prices()
+    table = prices if prices is not None else load_prices()
     provider = (provider or "").lower()
     entry = table.get(provider) or {}
+    if not _rates_valid(provider, table):
+        return "unauthorized"
     if _is_valid_date(table.get("verified_at")) and _is_valid_date(entry.get("verified_at")):
         return "official"
-    if _is_valid_date(table.get("authorized_at")) and _is_valid_date(entry.get("authorized_at")):
+    consumed = table.get("authorization_consumed_at")
+    if _is_valid_date(table.get("authorized_at")) and _is_valid_date(entry.get("authorized_at")) and not consumed:
         return "placeholder-authorized"
     return "unauthorized"
 
@@ -96,7 +117,7 @@ def estimate_cost_cny(
     prices: dict | None = None,
 ) -> float:
     """估算外部 API 成本（人民币）。本地 provider 只计 Tavily，不计本地推理。"""
-    table = prices or load_prices()
+    table = prices if prices is not None else load_prices()
     provider = (provider or "").lower()
     cost = 0.0
     if provider == "deepseek":
@@ -112,8 +133,9 @@ def estimate_task_upper_bound_cny(
     *,
     provider: str,
     max_tavily_calls: int,
-    max_llm_calls: int = 12,
+    max_llm_calls: int = 15,
     max_tokens_per_call: int = 4096,
+    max_prompt_tokens_per_call: int | None = None,
     prices: dict | None = None,
 ) -> float:
     """任务开始前的保守上界（用于预检，宁可保守拒绝，也不先超支）。
@@ -121,14 +143,16 @@ def estimate_task_upper_bound_cny(
     - Tavily：按剩余调用上限 × 单价；
     - 付费 provider：把每次调用的输入/输出都按 max_tokens_per_call 计的极端上界。
     """
-    table = prices or load_prices()
+    table = prices if prices is not None else load_prices()
     provider = (provider or "").lower()
     upper = float(max_tavily_calls or 0) * float((table.get("tavily") or {}).get("per_credit_cny", 0))
     if provider == "deepseek":
         cfg = table.get("deepseek") or {}
+        prompt_bound = max_prompt_tokens_per_call if max_prompt_tokens_per_call is not None else max_tokens_per_call
         per_call = (
-            float(cfg.get("input_per_million_cny", 0)) + float(cfg.get("output_per_million_cny", 0))
-        ) * (max_tokens_per_call / 1_000_000)
+            float(cfg.get("input_per_million_cny", 0)) * (prompt_bound / 1_000_000)
+            + float(cfg.get("output_per_million_cny", 0)) * (max_tokens_per_call / 1_000_000)
+        )
         upper += max_llm_calls * per_call
     return round(upper, 4)
 

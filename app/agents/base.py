@@ -81,12 +81,18 @@ class BaseAgent:
 
     def _chat(self, system_prompt: str, user_prompt: str) -> str:
         tracker = current_tracker()
+        if tracker is not None:
+            tracker.ensure_llm_capacity()
+        limit = settings.max_prompt_chars_per_call
+        prompt = user_prompt
+        if limit and len(prompt) > limit:
+            prompt = prompt[:limit] + "\n...[已截断以控制成本]"
         start = time.perf_counter()
         try:
             response = self.llm.invoke(
                 [
                     _make_message("system", system_prompt),
-                    _make_message("human", user_prompt),
+                    _make_message("human", prompt),
                 ]
             )
         except Exception as exc:  # noqa: BLE001 —— 记录失败后向上抛出，保持原语义

@@ -1,11 +1,11 @@
-# A5 本地 live + 成本闸门（本地部分完成；DeepSeek 对比待用户授权）
+# A5 本地 live + 成本闸门（已完成：本地 live + DeepSeek 对比）
 
 日期：2026-09-10 ｜ 状态：✅ 本地 live + DeepSeek 对比均已完成 ｜ 外部 API 现金支出：约 ¥0.25（DeepSeek tokens；Tavily 免费额度内为 0）
 
 ## 1. 目标
 - 用真实 Ollama（qwen2.5:7b）+ 真实 Tavily 跑 ≥2 个主题，记录真实耗时/调用/用量/估算成本；
 - 建立成本闸门：Tavily 调用上限、成本上限、付费 provider fail-closed；
-- DeepSeek 对比（恰 1 次、≤2 元）需用户确认后执行。
+- DeepSeek 对比：✅ 已于 2026-09-10 经用户授权执行（结果见第 8 节）。
 
 ## 2. 新增/改动
 | 文件 | 说明 |
@@ -49,7 +49,7 @@ pytest → 60 passed
 ruff check . → All checks passed!
 `
 
-## 7. 待用户授权（下一步）
+## 7. 授权状态（均已完成）
 - DeepSeek 对比：恰 1 次、≤2 元。需要用户确认 DeepSeek 官方价格（或授权按当前占位价 ¥2/M 输入、¥8/M 输出估算，实跑通常 <1 元），并把 config/prices.json 的 erified_at 置为确认日期后再执行。
 - 语料公开：docs/kb/AI应用实习面试学习文档.md 是否允许随仓库公开到 GitHub（当前仅本地 commit，未推送）。
 

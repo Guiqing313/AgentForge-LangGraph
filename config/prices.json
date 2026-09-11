@@ -1,7 +1,7 @@
 {
   "checked_at": "2026-09-10",
   "verified_at": null,
-  "note": "用户 2026-09-10 授权按占位价执行 DeepSeek 1 次对比（≤2 元）。官方价格尚未核对：verified_at 保持 null，仅以 authorized_at 表示授权；后续付费调用需官方核验或再次授权。",
+  "note": "用户 2026-09-10 授权按占位价执行过一次 DeepSeek 对比（已消费，authorization_consumed_at=2026-09-10）。再次付费运行需用户重新授权（更新 authorized_at 并清空 authorization_consumed_at）或提供官方价格核验（verified_at）。",
   "ollama": {
     "input_per_million_cny": 0,
     "output_per_million_cny": 0,
@@ -22,5 +22,6 @@
     "verified_at": null,
     "authorized_at": "2026-09-10"
   },
-  "authorized_at": "2026-09-10"
+  "authorized_at": "2026-09-10",
+  "authorization_consumed_at": "2026-09-10"
 }

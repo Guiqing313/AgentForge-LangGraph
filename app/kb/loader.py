@@ -60,10 +60,12 @@ def load_documents(
         if manifest is not None and entry is None:
             # manifest 是白名单：未登记文件不进入语料
             continue
-        text = path.read_text(encoding="utf-8", errors="replace").strip()
+        raw_text = path.read_text(encoding="utf-8", errors="replace")
+        text = raw_text.strip()
         if not text:
             continue
-        actual_sha = sha256_text(text)
+        # manifest 的 sha256 基于原始文件内容；strip 仅用于分块，避免哈希口径不一致
+        actual_sha = sha256_text(raw_text)
         if entry and verify_sha256:
             expected = entry.get("sha256")
             if expected and expected != actual_sha:

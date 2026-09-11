@@ -54,14 +54,28 @@ def test_placeholder_authorization_allows_paid():
     prices = {
         "verified_at": None,
         "authorized_at": "2026-09-10",
-        "deepseek": {"verified_at": None, "authorized_at": "2026-09-10"},
+        "deepseek": {
+            "verified_at": None,
+            "authorized_at": "2026-09-10",
+            "input_per_million_cny": 2.0,
+            "output_per_million_cny": 8.0,
+        },
+        "tavily": {"per_credit_cny": 0.058},
     }
     assert price_status("deepseek", prices) == "placeholder-authorized"
     assert ensure_paid_provider_allowed("deepseek", allow_paid=True, prices=prices) == "placeholder-authorized"
 
 
 def test_official_verification_status():
-    prices = {"verified_at": "2026-09-10", "deepseek": {"verified_at": "2026-09-10"}}
+    prices = {
+        "verified_at": "2026-09-10",
+        "deepseek": {
+            "verified_at": "2026-09-10",
+            "input_per_million_cny": 2.0,
+            "output_per_million_cny": 8.0,
+        },
+        "tavily": {"per_credit_cny": 0.058},
+    }
     assert price_status("deepseek", prices) == "official"
     assert ensure_paid_provider_allowed("deepseek", allow_paid=True, prices=prices) == "official"
 
@@ -74,11 +88,69 @@ def test_invalid_date_is_unauthorized():
         ensure_paid_provider_allowed("deepseek", allow_paid=True, prices=prices)
 
 
-def test_default_prices_are_authorized_but_not_officially_verified():
+def test_default_prices_authorization_consumed():
+    """默认价格表的占位授权已在 2026-09-10 消费，再次付费需重新授权。"""
     table = load_prices()
     assert table["verified_at"] is None
     assert table["authorized_at"] == "2026-09-10"
-    assert price_status("deepseek", table) == "placeholder-authorized"
+    assert table["authorization_consumed_at"] == "2026-09-10"
+    assert price_status("deepseek", table) == "unauthorized"
+
+
+def test_empty_prices_dict_does_not_fall_back():
+    """复测新 P1：显式传入空表不得回退到默认授权表。"""
+    assert price_status("deepseek", {}) == "unauthorized"
+
+
+def test_missing_rate_fields_are_unauthorized():
+    """复测新 P1：费率字段缺失时不得按 0 放行。"""
+    prices = {"verified_at": "2026-09-10", "deepseek": {"verified_at": "2026-09-10"}}
+    assert price_status("deepseek", prices) == "unauthorized"
+
+
+def test_upper_bound_covers_recorded_deepseek_task():
+    """复测 P1-2c：预检上界必须覆盖实际记录的 15 Tavily / 13 LLM 任务。"""
+    import json
+    from pathlib import Path
+
+    data = json.loads((Path(__file__).resolve().parent.parent / "data" / "live_results.json").read_text(encoding="utf-8"))
+    actual_max = max(record["estimated_cost_cny"] for record in data["deepseek"]["records"])
+    upper = estimate_task_upper_bound_cny(
+        provider="deepseek",
+        max_tavily_calls=15,
+        max_llm_calls=15,
+        max_tokens_per_call=4096,
+        max_prompt_tokens_per_call=8000,
+        prices=load_prices(),
+    )
+    assert upper >= actual_max
+
+
+def test_llm_call_cap_and_task_tavily_cap():
+    """运行时硬上限必须真实生效（LLM 调用数与单任务 Tavily 数）。"""
+    from app import observability
+    from app.tools import search as search_mod
+
+    with observability.track(task_id=1, max_llm_calls=1) as tracker:
+        tracker.record_llm(provider="ollama", latency_ms=1.0)
+        with pytest.raises(RuntimeError):
+            tracker.ensure_llm_capacity()
+
+    search_mod.configure_limits(10)
+    search_mod.start_task_limits(1)
+    try:
+        tool = search_mod.WebSearchTool(tavily_api_key="fake", use_cache=False)
+
+        def fake_tavily(query):
+            return [{"title": "t", "content": "c", "url": "u"}]
+
+        tool._search_tavily = fake_tavily
+        tool.search("t1")
+        with pytest.raises(RuntimeError):
+            tool.search("t2")
+    finally:
+        search_mod.configure_limits(None)
+        search_mod.start_task_limits(None)
 
 
 def test_pre_task_budget_rejects_before_running():
