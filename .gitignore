@@ -18,3 +18,4 @@ dist/
 build/
 *.egg-info/
 data/embed_server*.log
+*.sqlite
