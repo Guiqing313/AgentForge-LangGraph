@@ -3,6 +3,8 @@
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from app.config import settings
 from app.kb import indexer
 from app.kb.embedding import DeterministicHashEmbeddingFunction
@@ -72,3 +74,30 @@ def test_private_interview_doc_not_in_corpus():
     files = [doc.get("file", "") for doc in manifest.get("documents", [])]
     sources = [doc.get("source_path", "") for doc in manifest.get("documents", [])]
     assert all("面试" not in item for item in files + sources)
+
+
+def test_loader_uses_manifest_whitelist(tmp_path):
+    import json
+
+    docs_dir = tmp_path / "kb"
+    docs_dir.mkdir()
+    (docs_dir / "listed.md").write_text("listed content", encoding="utf-8")
+    (docs_dir / "unlisted.md").write_text("unlisted content", encoding="utf-8")
+    manifest = {"documents": [{"file": "listed.md", "sha256": sha256_text("listed content")}]}
+    (docs_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    docs = load_documents(docs_dir)
+    assert [d.source for d in docs] == ["listed.md"]
+
+
+def test_loader_rejects_manifest_sha_mismatch(tmp_path):
+    import json
+
+    docs_dir = tmp_path / "kb"
+    docs_dir.mkdir()
+    (docs_dir / "a.md").write_text("changed content", encoding="utf-8")
+    manifest = {"documents": [{"file": "a.md", "sha256": sha256_text("original content")}]}
+    (docs_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        load_documents(docs_dir)

@@ -23,6 +23,27 @@ logger = logging.getLogger(__name__)
 # 进程内搜索缓存：key = query，value = 结果列表
 _SEARCH_CACHE: dict[str, list[dict]] = {}
 
+# 外部搜索硬上限（A5 复测修复）：达到上限后不再发起 Tavily 调用
+MAX_TAVILY_CALLS: int | None = None
+TAVILY_CALL_COUNT = 0
+
+
+def configure_limits(max_tavily_calls: int | None) -> None:
+    global MAX_TAVILY_CALLS, TAVILY_CALL_COUNT
+    MAX_TAVILY_CALLS = max_tavily_calls
+    TAVILY_CALL_COUNT = 0
+
+
+def tavily_calls_used() -> int:
+    return TAVILY_CALL_COUNT
+
+
+def _reserve_tavily_call() -> None:
+    global TAVILY_CALL_COUNT
+    if MAX_TAVILY_CALLS is not None and TAVILY_CALL_COUNT >= MAX_TAVILY_CALLS:
+        raise RuntimeError(f"Tavily 调用达到上限 {MAX_TAVILY_CALLS}，停止外部搜索")
+    TAVILY_CALL_COUNT += 1
+
 # duckduckgo-search 已更名为 ddgs，触发改名警告，此处静默处理
 warnings.filterwarnings("ignore", message=r".*renamed to.*ddgs.*")
 
@@ -60,6 +81,8 @@ class WebSearchTool:
             return _SEARCH_CACHE[query]
 
         if self.tavily_api_key:
+            # 硬上限：超出后直接抛出（由 SearcherAgent 记录降级），不得回退到其他外部搜索
+            _reserve_tavily_call()
             try:
                 results = self._search_tavily(query)
                 self.last_backend = "tavily"

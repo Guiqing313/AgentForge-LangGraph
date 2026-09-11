@@ -78,6 +78,7 @@ def test_docs_match_real_graph_structure():
     graph = (ROOT / "app" / "graph" / "research_graph.py").read_text(encoding="utf-8")
     assert "仍有子问题" not in readme
     assert "每个子问题内部最多 2 轮" in readme
+    assert "C --> C" not in readme
     assert "没有\"搜索节点回到自身\"的图级条件边" in graph
 
 
@@ -85,3 +86,8 @@ def test_mock_llm_still_works():
     llm = MockLLM()
     response = llm.invoke([type("M", (), {"content": '输出 {"sub_questions": []}'})()])
     assert "sub_questions" in response.content
+
+
+def test_tests_use_isolated_database():
+    # 复测 P2-2：conftest 强制覆盖 DATABASE_URL，测试不得连接真实库
+    assert "agentforge_test_" in settings.database_url

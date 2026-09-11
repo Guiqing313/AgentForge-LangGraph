@@ -29,14 +29,16 @@ from app import observability  # noqa: E402
 from app.config import settings  # noqa: E402
 from app.cost import (  # noqa: E402
     enforce_budget,
+    enforce_pre_task_budget,
     ensure_paid_provider_allowed,
     estimate_cost_cny,
+    estimate_task_upper_bound_cny,
     load_prices,
     require_paid_usage,
 )
 from app.graph.research_graph import ResearchGraph  # noqa: E402
 from app.graph.state import initial_state  # noqa: E402
-from app.tools.search import cache_size, clear_cache  # noqa: E402
+from app.tools.search import cache_size, clear_cache, configure_limits, tavily_calls_used  # noqa: E402
 
 DEFAULT_TOPICS = ["RAG 与 Agent 的区别", "大模型应用工程师需要哪些能力"]
 
@@ -51,8 +53,9 @@ def _apply_provider(provider: str) -> None:
     base_module.settings = new_settings
 
 
-def _run_topics(provider: str, topics: list[str], max_tavily_calls: int, max_cost_cny: float) -> dict:
+def _run_topics(provider: str, topics: list[str], max_tavily_calls: int, max_cost_cny: float, max_tavily_per_task: int = 6) -> dict:
     _apply_provider(provider)
+    configure_limits(max_tavily_calls)
     graph = ResearchGraph().build()
 
     records: list[dict] = []
@@ -62,6 +65,16 @@ def _run_topics(provider: str, topics: list[str], max_tavily_calls: int, max_cos
     total_completion_tokens: int | None = 0
 
     for index, topic in enumerate(topics, start=1):
+        # 任务开始前的保守预检：宁可拒绝，也不先超支
+        remaining_tavily = max(max_tavily_calls - total_tavily, 0)
+        upper_bound = estimate_task_upper_bound_cny(
+            provider=provider,
+            max_tavily_calls=min(remaining_tavily, max_tavily_per_task),
+            max_llm_calls=12,
+            max_tokens_per_call=settings.llm_max_tokens,
+        )
+        enforce_pre_task_budget(spent_cny=total_cost, upper_bound_cny=upper_bound, max_cost_cny=max_cost_cny)
+
         with observability.track(task_id=index) as tracker:
             start = time.perf_counter()
             result = graph.invoke(initial_state(topic))
@@ -95,6 +108,7 @@ def _run_topics(provider: str, topics: list[str], max_tavily_calls: int, max_cos
             "search_calls": snapshot["search_calls"],
             "search_by_backend": snapshot["search_by_backend"],
             "tavily_calls": tavily_calls,
+            "tavily_calls_total_tool": tavily_calls_used(),
             "llm_calls": snapshot["llm_calls"],
             "prompt_tokens": prompt_tokens,
             "completion_tokens": completion_tokens,
@@ -126,6 +140,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="AgentForge 本地 live 运行 + 成本闸门")
     parser.add_argument("--topics", nargs="+", default=DEFAULT_TOPICS)
     parser.add_argument("--max-tavily-calls", type=int, default=30)
+    parser.add_argument("--max-tavily-per-task", type=int, default=6, help="单任务预检使用的 Tavily 上界")
     parser.add_argument("--max-cost-cny", type=float, default=10.0, help="外部 API 总成本上限（默认 10 元）")
     parser.add_argument("--max-paid-cost-cny", type=float, default=2.0, help="付费 provider 阶段成本上限（默认 2 元）")
     parser.add_argument("--out", default=str(ROOT / "data" / "live_results.json"))
@@ -153,7 +168,7 @@ def main() -> int:
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         return path
 
-    ollama_result = _run_topics(primary, args.topics, args.max_tavily_calls, args.max_cost_cny)
+    ollama_result = _run_topics(primary, args.topics, args.max_tavily_calls, args.max_cost_cny, args.max_tavily_per_task)
     results["ollama"] = ollama_result
     results["search_cache_size"] = cache_size()
     _save(results)  # 增量落盘：即使下一阶段中止也不丢已有记录
@@ -165,7 +180,9 @@ def main() -> int:
         if paid_limit <= 0:
             print("预算已用尽，跳过 DeepSeek 对比")
             return 3
-        deepseek_result = _run_topics("deepseek", args.topics, args.max_tavily_calls, paid_limit)
+        deepseek_result = _run_topics(
+            "deepseek", args.topics, args.max_tavily_calls, paid_limit, args.max_tavily_per_task
+        )
         results["deepseek"] = deepseek_result
         results["mode"] = "ollama+deepseek"
         results["comparison_note"] = (

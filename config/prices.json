@@ -1,7 +1,7 @@
 {
   "checked_at": "2026-09-10",
-  "verified_at": "2026-09-10",
-  "note": "用户 2026-09-10 授权按本表占位价执行 DeepSeek 1 次对比（≤2 元）。执行后应复核官方价格。",
+  "verified_at": null,
+  "note": "用户 2026-09-10 授权按占位价执行 DeepSeek 1 次对比（≤2 元）。官方价格尚未核对：verified_at 保持 null，仅以 authorized_at 表示授权；后续付费调用需官方核验或再次授权。",
   "ollama": {
     "input_per_million_cny": 0,
     "output_per_million_cny": 0,
@@ -12,12 +12,15 @@
     "input_per_million_cny": 2.0,
     "output_per_million_cny": 8.0,
     "source": "待用户核对 DeepSeek 官方价格页",
-    "verified_at": "2026-09-10"
+    "verified_at": null,
+    "authorized_at": "2026-09-10"
   },
   "tavily": {
     "free_credits_per_month": 1000,
     "per_credit_cny": 0.058,
     "source": "待用户核对 Tavily 官方价格页（basic search 通常 1 credit）",
-    "verified_at": "2026-09-10"
-  }
+    "verified_at": null,
+    "authorized_at": "2026-09-10"
+  },
+  "authorized_at": "2026-09-10"
 }

@@ -1,4 +1,4 @@
-# 直接依赖锁定（与 requirements.txt 保持一致；完整传递闭包由 CI 的 pip freeze 产物记录）
+# 直接依赖精确锁（exact pins）。传递依赖闭包由 CI 的 pip-freeze 制品记录（见 .github/workflows/ci.yml）。
 # 后端
 fastapi==0.141.1
 uvicorn[standard]==0.52.3

@@ -1,7 +1,7 @@
 # AgentForge v2.0 风险登记与用户介入清单
 
 > 来源：2026-09-10 侧边对话风险交接 + 主线程核验。执行中命中"必须用户介入/硬停止"条目时立即停下询问。
-> 当前状态快照（2026-09-10）：HEAD `637c602`（A1 已完成并提交）；Ollama v0.32.9 运行中；embedding 服务 127.0.0.1:11435 运行中（PID 24040，`loaded=true`）；外部 API 成本 0 元。
+> 当前状态快照：分支 `codex/agentforge-upgrade`（HEAD 以 `git log -1` 为准）；Phase A 已完成并经「复测」复测，修复记录见 `docs/upgrade/REMEDIATION-retest.md`；Ollama 当前停止；embedding 服务由用户启动时运行于 127.0.0.1:11435。
 
 ---
 

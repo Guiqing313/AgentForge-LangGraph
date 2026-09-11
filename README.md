@@ -18,8 +18,7 @@
 ```mermaid
 flowchart TD
     A[用户输入研究主题] --> B[规划 Agent]
-    B --> C{搜索 Agent<br/>本地知识库 + 网络}
-    C -->|每个子问题内部最多 2 轮| C
+    B --> C{搜索 Agent<br/>本地知识库 + 网络<br/>每个子问题内部最多 2 轮}
     C -->|全部子问题处理完| D[分析 Agent]
     D --> E[撰写 Agent]
     E --> F[审核 Agent]

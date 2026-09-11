@@ -1,6 +1,6 @@
 # A5 本地 live + 成本闸门（本地部分完成；DeepSeek 对比待用户授权）
 
-日期：2026-09-10 ｜ 状态：本地 live ✅ / DeepSeek 对比 ⏸ 待授权 ｜ 外部 API 现金支出：0 元（Ollama 本地）
+日期：2026-09-10 ｜ 状态：✅ 本地 live + DeepSeek 对比均已完成 ｜ 外部 API 现金支出：约 ¥0.25（DeepSeek tokens；Tavily 免费额度内为 0）
 
 ## 1. 目标
 - 用真实 Ollama（qwen2.5:7b）+ 真实 Tavily 跑 ≥2 个主题，记录真实耗时/调用/用量/估算成本；
@@ -21,7 +21,7 @@ equire_paid_usage / nforce_budget） |
 | 	ests/test_cost_gate.py | 7 项成本/闸门测试 |
 | data/live_results.json | 本次本地 live 的真实记录 |
 
-## 3. 真实运行结果（Ollama + Tavily）
+## 3. 第一轮本地 run（已被第 8 节最终 run 取代，仅作过程记录）
 | 主题 | 状态 | 耗时(s) | 子问题 | 审核轮次 | Tavily 调用 | LLM 调用 | prompt/completion tokens | 估算成本(¥) |
 |---|---|---:|---:|---:|---:|---:|---|---:|
 | RAG 与 Agent 的区别 | completed | 49.77 | 3 | 1 | 6 | 9 | 13309 / 1696 | 0.348 |
@@ -73,3 +73,7 @@ ruff check . → All checks passed!
 2. DeepSeek 阶段产生了 30 次 Tavily 调用（因为 planner 查询词不同，进程内缓存未命中），并非"复用同一批搜索结果"。
 3. 运行脚本在合并预算检查时报 `BudgetExceeded` 并中止，**未写出 JSON**；本文件的数字来自该次运行的真实 stdout，并已重建到 `data/live_results.json`。
 4. 预算语义已修复：`--max-cost-cny` 为外部 API 总上限（默认 10 元），`--max-paid-cost-cny` 为付费阶段上限（默认 2 元，对应用户授权）；并改为每个 provider 阶段后增量落盘，避免中止丢数据。
+
+## 9. 复测修复（2026-09-11）
+- partial usage fail-closed、预算前置、价格语义、Tavily 硬上限、文档一致性、README 自环、conftest 强隔离、loader manifest 白名单均已修复；详见 `docs/upgrade/REMEDIATION-retest.md`。
+- 修复后回归：pytest 68 passed、ruff All checks passed。

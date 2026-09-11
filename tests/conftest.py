@@ -7,9 +7,9 @@ import uuid
 from pathlib import Path
 
 # 必须在 import app 之前设置
-os.environ.setdefault("LLM_MODE", "mock")
+os.environ["LLM_MODE"] = "mock"  # 测试强制 mock，避免误用真实 provider
 _TMP_DB = Path(tempfile.gettempdir()) / f"agentforge_test_{uuid.uuid4().hex}.db"
-os.environ.setdefault("DATABASE_URL", f"sqlite+aiosqlite:///{_TMP_DB}")
+os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{_TMP_DB}"  # 强制隔离，避免污染真实数据库
 
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
