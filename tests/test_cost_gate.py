@@ -60,7 +60,7 @@ def test_placeholder_authorization_allows_paid():
             "input_per_million_cny": 2.0,
             "output_per_million_cny": 8.0,
         },
-        "tavily": {"per_credit_cny": 0.058},
+        "tavily": {"per_credit_cny": 0.058, "authorized_at": "2026-09-10"},
     }
     assert price_status("deepseek", prices) == "placeholder-authorized"
     assert ensure_paid_provider_allowed("deepseek", allow_paid=True, prices=prices) == "placeholder-authorized"
@@ -74,7 +74,7 @@ def test_official_verification_status():
             "input_per_million_cny": 2.0,
             "output_per_million_cny": 8.0,
         },
-        "tavily": {"per_credit_cny": 0.058},
+        "tavily": {"per_credit_cny": 0.058, "verified_at": "2026-09-10"},
     }
     assert price_status("deepseek", prices) == "official"
     assert ensure_paid_provider_allowed("deepseek", allow_paid=True, prices=prices) == "official"
@@ -235,4 +235,83 @@ def test_search_call_limit_blocks_further_tavily(monkeypatch):
         assert calls["n"] == 1
     finally:
         search_mod.configure_limits(None)
+        search_mod.clear_cache()
+
+
+def test_tavily_missing_authorization_blocks_deepseek():
+    """复测第四轮 P2：DeepSeek 状态必须同时要求 Tavily 的授权/核验字段。"""
+    prices = {
+        "verified_at": "2026-09-10",
+        "authorized_at": None,
+        "deepseek": {
+            "verified_at": "2026-09-10",
+            "input_per_million_cny": 2.0,
+            "output_per_million_cny": 8.0,
+        },
+        "tavily": {"per_credit_cny": 0.058},
+    }
+    assert price_status("deepseek", prices) == "unauthorized"
+
+
+def test_concurrent_cost_reservation_counts_inflight():
+    """复测第四轮 P1：并发下成本上限也不能被在途预留绕过。"""
+    import threading
+
+    from app import observability
+
+    prices = {
+        "verified_at": "2026-09-10",
+        "authorized_at": "2026-09-10",
+        "deepseek": {
+            "verified_at": "2026-09-10",
+            "authorized_at": "2026-09-10",
+            "input_per_million_cny": 2.0,
+            "output_per_million_cny": 8.0,
+        },
+        "tavily": {"per_credit_cny": 0.058, "verified_at": "2026-09-10", "authorized_at": "2026-09-10"},
+    }
+    # 单次最坏 LLM 成本 ≈ 8000/1M*2 + 4096/1M*8 = 0.0488；上限 0.06 只允许 1 个在途预留
+    with observability.track(task_id=1, provider="deepseek", allow_paid=True, prices=prices, max_cost_cny=0.06) as tracker:
+        barrier = threading.Barrier(5)
+        results: list[str] = []
+        lock = threading.Lock()
+
+        def worker():
+            barrier.wait()
+            try:
+                tracker.reserve_llm()
+                with lock:
+                    results.append("ok")
+            except BudgetExceeded:
+                with lock:
+                    results.append("blocked")
+
+        threads = [threading.Thread(target=worker) for _ in range(5)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    assert results.count("ok") == 1
+    assert results.count("blocked") == 4
+
+
+def test_cache_hit_is_recorded_once():
+    """复测第四轮 P2：cache 命中也要记账，且每次 search 只记一条。"""
+    from app import observability
+    from app.tools import search as search_mod
+
+    search_mod.clear_cache()
+    search_mod.configure_limits(None)
+    tool = search_mod.WebSearchTool(tavily_api_key="fake", use_cache=True)
+    tool._search_tavily = lambda query: [{"title": "t", "content": "c", "url": "u"}]
+    try:
+        with observability.track(task_id=1, provider="ollama") as tracker:
+            tool.search("q1")
+            tool.search("q1")
+            snapshot = tracker.snapshot()
+        assert snapshot["search_by_backend"].get("tavily") == 1
+        assert snapshot["search_by_backend"].get("cache") == 1
+        assert snapshot["search_calls"] == 2
+    finally:
         search_mod.clear_cache()

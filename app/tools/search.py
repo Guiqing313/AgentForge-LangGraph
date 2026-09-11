@@ -68,7 +68,12 @@ def cache_size() -> int:
 
 
 class WebSearchTool:
-    """网络搜索工具，统一输出 ``[{"title", "content", "url"}]``。"""
+    """网络搜索工具，统一输出 ``[{"title", "content", "url"}]``。
+
+    记账口径（UsageTracker.search_calls）：每一次 search 调用记一条——
+    cache 命中记为 cache；Tavily 成功记为 tavily；Tavily 失败后回退 DuckDuckGo
+    会分别记录失败 tavily 与 duckduckgo 两条尝试记录。
+    """
 
     def __init__(self, tavily_api_key: str | None = None, max_results: int | None = None, use_cache: bool = True) -> None:
         self.tavily_api_key = tavily_api_key if tavily_api_key is not None else settings.tavily_api_key
@@ -80,6 +85,9 @@ class WebSearchTool:
         """执行一次网络搜索；失败时抛出异常，由上层记录并降级。"""
         if self.use_cache and query in _SEARCH_CACHE:
             self.last_backend = "cache"
+            tracker = current_tracker()
+            if tracker is not None:
+                tracker.record_search(backend="cache", query=query, ok=True, n_results=len(_SEARCH_CACHE[query]))
             return _SEARCH_CACHE[query]
 
         if self.tavily_api_key:

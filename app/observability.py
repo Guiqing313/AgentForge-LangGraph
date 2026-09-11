@@ -80,16 +80,20 @@ class UsageTracker:
             prices=self._price_table_locked(),
         )
 
+    def _reserved_cost_locked(self) -> float:
+        """在途预留的保守成本（并发下必须计入，否则多个线程可同时通过预算检查）。"""
+        return self._llm_reserved * self._worst_llm_cost_locked() + self._tavily_reserved * self._tavily_rate_locked()
+
     # ---- LLM：原子预留 → 调用 → 记账/释放 ----
     def reserve_llm(self) -> None:
         with self._lock:
             if self.max_llm_calls is not None and self._llm_started >= self.max_llm_calls:
                 raise BudgetExceeded(f"单任务 LLM 调用达到上限 {self.max_llm_calls}，中止以防超支")
             if self.max_cost_cny is not None:
-                projected = self._estimated_cost_locked() + self._worst_llm_cost_locked()
+                projected = self._estimated_cost_locked() + self._reserved_cost_locked() + self._worst_llm_cost_locked()
                 if projected > self.max_cost_cny:
                     raise BudgetExceeded(
-                        f"预算预检拒绝：已估算 ¥{self._estimated_cost_locked():.4f} + 本次最坏 ¥{self._worst_llm_cost_locked():.4f} > 上限 ¥{self.max_cost_cny}"
+                        f"预算预检拒绝：已估算 ¥{self._estimated_cost_locked():.4f} + 在途预留 ¥{self._reserved_cost_locked():.4f} + 本次最坏 ¥{self._worst_llm_cost_locked():.4f} > 上限 ¥{self.max_cost_cny}"
                     )
             self._llm_reserved += 1
             self._llm_started += 1
@@ -133,10 +137,10 @@ class UsageTracker:
             if self.max_tavily_calls is not None and self._tavily_started >= self.max_tavily_calls:
                 raise BudgetExceeded(f"单任务 Tavily 调用达到上限 {self.max_tavily_calls}，中止以防超支")
             if self.max_cost_cny is not None:
-                projected = self._estimated_cost_locked() + self._tavily_rate_locked()
+                projected = self._estimated_cost_locked() + self._reserved_cost_locked() + self._tavily_rate_locked()
                 if projected > self.max_cost_cny:
                     raise BudgetExceeded(
-                        f"预算预检拒绝：已估算 ¥{self._estimated_cost_locked():.4f} + 本次 Tavily ¥{self._tavily_rate_locked():.4f} > 上限 ¥{self.max_cost_cny}"
+                        f"预算预检拒绝：已估算 ¥{self._estimated_cost_locked():.4f} + 在途预留 ¥{self._reserved_cost_locked():.4f} + 本次 Tavily ¥{self._tavily_rate_locked():.4f} > 上限 ¥{self.max_cost_cny}"
                     )
             self._tavily_reserved += 1
             self._tavily_started += 1

@@ -66,14 +66,7 @@ def _rates_valid(provider: str, table: dict) -> bool:
     return False
 
 
-def price_status(provider: str, prices: dict | None = None) -> str:
-    """返回 official / placeholder-authorized / unauthorized。
-
-    official：全局与 provider 的 verified_at 均为合法日期，且费率字段完整有效。
-    placeholder-authorized：全局与 provider 的 authorized_at 合法、授权未被消费（authorization_consumed_at 为空），且费率字段完整有效。
-    """
-    table = prices if prices is not None else load_prices()
-    provider = (provider or "").lower()
+def _provider_status(table: dict, provider: str) -> str:
     entry = table.get(provider) or {}
     if not _rates_valid(provider, table):
         return "unauthorized"
@@ -83,6 +76,27 @@ def price_status(provider: str, prices: dict | None = None) -> str:
     if _is_valid_date(table.get("authorized_at")) and _is_valid_date(entry.get("authorized_at")) and not consumed:
         return "placeholder-authorized"
     return "unauthorized"
+
+
+def price_status(provider: str, prices: dict | None = None) -> str:
+    """返回 official / placeholder-authorized / unauthorized。
+
+    DeepSeek 的价格完整性包含其实际会调用的 Tavily：若 Tavily 费率或授权/核验缺失，
+    DeepSeek 也判为 unauthorized（避免把 Tavily 成本按 0 漏算）。
+    """
+    table = prices if prices is not None else load_prices()
+    provider = (provider or "").lower()
+    if not _rates_valid(provider, table):
+        return "unauthorized"
+    if provider != "deepseek":
+        return _provider_status(table, provider)
+    deepseek_status = _provider_status(table, "deepseek")
+    tavily_status = _provider_status(table, "tavily")
+    if "unauthorized" in (deepseek_status, tavily_status):
+        return "unauthorized"
+    if deepseek_status == "official" and tavily_status == "official":
+        return "official"
+    return "placeholder-authorized"
 
 
 def ensure_paid_provider_allowed(provider: str, *, allow_paid: bool = False, prices: dict | None = None) -> str:
