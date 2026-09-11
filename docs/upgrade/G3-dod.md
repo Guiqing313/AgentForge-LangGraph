@@ -14,7 +14,7 @@
 | SSE 后端接口（不做断线续传） | ✅（paused 发 interrupt 后关闭该次流；p50 3.5ms） | tests/test_stream.py、scripts/measure_sse_latency.py、B4-sse.md |
 | 本地 live ≥2 主题且成本 ≤10 元 | ✅ Ollama 2/2；DeepSeek 对比 1 次（阶段估算 ¥1.9945） | data/live_results.json、A5-live-cost.md |
 | README 与真实能力一致 | ✅ | README.md（含能力边界与"规划中"标注） |
-| 账本同步 | 16 条：已确认 12 / 待确认 3 / 不采用 1（YAML/多工作流模板不采用）；validator 通过 | 黄展亮-AI应用工程师-主张证据账本.json（16 条，validator 通过） |
+| 账本同步 | 16 条：已确认 12 / 待确认 3 / 不采用 1（YAML/多工作流模板不采用）；validator 通过 | 主张—证据账本（16 条，validator 通过） |
 | 未落地项标注"规划中" | ✅ | README「能力边界」；账本 claim-af-004 |
 
 ## G2 五项收口（已完成）
