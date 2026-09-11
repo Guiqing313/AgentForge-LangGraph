@@ -2,20 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app.config import settings
 from app.services.task_service import TaskService
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
-
-# 保存后台任务引用，防止被垃圾回收而中断
-_background_tasks: set[asyncio.Task] = set()
-
 
 class TaskCreate(BaseModel):
     topic: str = Field(..., min_length=1, max_length=500, description="研究主题")
@@ -55,10 +49,7 @@ def _task_detail(task: Any) -> dict:
 @router.post("", status_code=201)
 async def create_task(payload: TaskCreate) -> dict:
     task = await TaskService.create_task(payload.topic)
-    runner = TaskService.run_task_with_review if settings.human_review_enabled else TaskService.run_task
-    bg = asyncio.create_task(runner(task.id))
-    _background_tasks.add(bg)
-    bg.add_done_callback(_background_tasks.discard)
+    # B2：任务由单进程 worker 领取执行（不再在 API 进程内直接起协程）
     return {"code": 200, "message": "success", "data": _task_to_dict(task)}
 
 
@@ -117,6 +108,20 @@ async def resume_task(task_id: int, payload: ResumeRequest) -> dict:
         raise HTTPException(status_code=409, detail=f"任务当前状态为 {task.status}，只有 paused 可以恢复")
     try:
         updated = await TaskService.resume_task(task_id, payload.sub_questions)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return {"code": 200, "message": "success", "data": _task_detail(updated)}
+
+@router.post("/{task_id}/cancel")
+async def cancel_task(task_id: int) -> dict:
+    """取消任务：pending/paused 直接取消；running 为 best-effort（安全点收敛）。"""
+    task = await TaskService.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    if task.status in ("completed", "failed", "canceled"):
+        raise HTTPException(status_code=409, detail=f"任务状态为 {task.status}，无需取消")
+    try:
+        updated = await TaskService.cancel_task(task_id)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"code": 200, "message": "success", "data": _task_detail(updated)}

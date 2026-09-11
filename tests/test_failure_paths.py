@@ -142,3 +142,36 @@ def test_reformulate_does_not_swallow_hard_stops(monkeypatch):
     monkeypatch.setattr(agent, "_chat_json", paid_stop)
     with pytest.raises(PaidProviderNotVerified):
         agent._reformulate("q")
+
+
+def test_web_search_can_be_disabled(monkeypatch):
+    """WEB_SEARCH_ENABLED=false 时不得发起网络搜索（演示/离线）。"""
+    from dataclasses import replace
+
+    import app.agents.searcher as searcher_module
+    from app.agents.searcher import SearcherAgent, SearchOutcome
+
+    called = {"web": 0, "local": 0}
+
+    class _NeverWeb:
+        def search(self, query):
+            called["web"] += 1
+            raise AssertionError("web search should be disabled")
+
+    class _Local:
+        def search(self, query):
+            called["local"] += 1
+            return [{"title": "local", "content": "本地资料", "url": ""}]
+
+    # 替换模块级 settings：关闭网络搜索并强制 live 分支（绕过 mock 短路）
+    monkeypatch.setattr(
+        searcher_module,
+        "settings",
+        replace(searcher_module.settings, web_search_enabled=False, llm_mode="live"),
+    )
+    agent = SearcherAgent(web_search=_NeverWeb(), local_search=_Local())
+    monkeypatch.setattr(agent, "plan_queries", lambda question: {"search_queries": ["q"], "prefer_local": True})
+    outcome = agent.search("测试问题")
+    assert isinstance(outcome, SearchOutcome)
+    assert called["web"] == 0
+    assert any("网络检索已禁用" in line for line in outcome.log)

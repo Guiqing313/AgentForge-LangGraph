@@ -123,10 +123,13 @@ class SearcherAgent(BaseAgent):
                     note = f"（失败：{err}）" if err else ""
                     outcome.log.append(f"第{round_idx}轮 本地检索「{query}」→ {len(docs)} 条{note}")
 
-                docs, err = self._try_web(query)
-                round_docs.extend(docs)
-                note = f"（失败：{err}）" if err else ""
-                outcome.log.append(f"第{round_idx}轮 网络检索「{query}」→ {len(docs)} 条{note}")
+                if settings.web_search_enabled:
+                    docs, err = self._try_web(query)
+                    round_docs.extend(docs)
+                    note = f"（失败：{err}）" if err else ""
+                    outcome.log.append(f"第{round_idx}轮 网络检索「{query}」→ {len(docs)} 条{note}")
+                else:
+                    outcome.log.append(f"第{round_idx}轮 网络检索已禁用（WEB_SEARCH_ENABLED=false）")
 
             outcome.documents = self._dedupe(outcome.documents + round_docs)
             outcome.rounds = round_idx

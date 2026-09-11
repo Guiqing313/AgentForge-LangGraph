@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import JSON, Column, DateTime, Integer, String, Text
+from sqlalchemy import JSON, Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -34,3 +34,9 @@ class ResearchTask(Base):
     created_at = Column(DateTime, default=lambda: datetime.now())
     updated_at = Column(DateTime, default=lambda: datetime.now(), onupdate=lambda: datetime.now())
     completed_at = Column(DateTime, nullable=True)
+
+    # B2：单进程 worker 的领取/心跳/重试/取消
+    locked_at = Column(DateTime, nullable=True)
+    heartbeat_at = Column(DateTime, nullable=True)
+    attempts = Column(Integer, default=0)
+    cancel_requested = Column(Boolean, default=False)

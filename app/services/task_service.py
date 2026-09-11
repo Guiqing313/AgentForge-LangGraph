@@ -91,6 +91,28 @@ class TaskService:
             await session.commit()
             return True
 
+    @staticmethod
+    async def cancel_task(task_id: int) -> ResearchTask:
+        """取消任务：pending/paused 直接 canceled；running 设置 cancel_requested（best-effort）。"""
+        async with SessionLocal() as session:
+            task = await session.get(ResearchTask, task_id)
+            if not task:
+                raise ValueError(f"任务 {task_id} 不存在")
+            if task.status in ("pending", "paused"):
+                task.status = "canceled"
+                task.cancel_requested = True
+                task.locked_at = None
+                task.heartbeat_at = None
+                await session.commit()
+                await session.refresh(task)
+                return task
+            if task.status == "running":
+                task.cancel_requested = True
+                await session.commit()
+                await session.refresh(task)
+                return task
+            raise ValueError(f"任务状态为 {task.status}，无需取消")
+
     # ---- B1：interrupt/resume ----
 
     @staticmethod
@@ -107,6 +129,8 @@ class TaskService:
             else:
                 task.status = "failed"
                 task.error = str(exc)
+                task.locked_at = None
+                task.heartbeat_at = None
                 await session.commit()
 
     @staticmethod
@@ -125,6 +149,8 @@ class TaskService:
             task.review_rounds = serialized["review_rounds"]
             task.logs = serialized["logs"]
             task.completed_at = datetime.now()
+            task.locked_at = None
+            task.heartbeat_at = None
             await session.commit()
             await session.refresh(task)
         if settings.memory_enabled:
@@ -143,6 +169,8 @@ class TaskService:
             task.status = "paused"
             task.sub_questions = state.get("sub_questions") or []
             task.logs = state.get("log") or []
+            task.locked_at = None
+            task.heartbeat_at = None
             await session.commit()
             await session.refresh(task)
         return task

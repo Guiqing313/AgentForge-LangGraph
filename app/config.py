@@ -90,6 +90,16 @@ class Settings:
     chunk_size: int = field(default_factory=lambda: _get_int("CHUNK_SIZE", 500))
     chunk_overlap: int = field(default_factory=lambda: _get_int("CHUNK_OVERLAP", 50))
     # ---- Memory（A2：跨任务经验记忆；非完整短期/长期记忆系统） ----
+    # ---- 网络搜索开关（演示/离线可用 false，只走本地知识库） ----
+    web_search_enabled: bool = field(default_factory=lambda: _get_bool("WEB_SEARCH_ENABLED", True))
+
+    # ---- 单进程 worker（B2） ----
+    worker_enabled: bool = field(default_factory=lambda: _get_bool("WORKER_ENABLED", True))
+    worker_poll_interval: float = field(default_factory=lambda: _get_float("WORKER_POLL_INTERVAL", 1.0))
+    worker_stale_seconds: int = field(default_factory=lambda: _get_int("WORKER_STALE_SECONDS", 600))
+    worker_max_attempts: int = field(default_factory=lambda: _get_int("WORKER_MAX_ATTEMPTS", 2))
+    worker_heartbeat_interval: float = field(default_factory=lambda: _get_float("WORKER_HEARTBEAT_INTERVAL", 5.0))
+
     # ---- 人机协同（B1 interrupt/resume） ----
     human_review_enabled: bool = field(default_factory=lambda: _get_bool("HUMAN_REVIEW_ENABLED", False))
     checkpoint_db: str = field(default_factory=lambda: _get("CHECKPOINT_DB", str(BASE_DIR / "data" / "checkpoints.sqlite")))

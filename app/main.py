@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.config import settings
 from app.db.database import init_db
+from app.migrations import ensure_schema
 from app.routes import insights, reports, tasks
+from app.worker import recover_stale_tasks, worker_loop
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,7 +25,20 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
-    yield
+    await ensure_schema()
+    stop_event = asyncio.Event()
+    worker_task: asyncio.Task | None = None
+    if settings.worker_enabled:
+        await recover_stale_tasks()
+        worker_task = asyncio.create_task(worker_loop(stop_event))
+    try:
+        yield
+    finally:
+        if worker_task is not None:
+            stop_event.set()
+            worker_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await worker_task
 
 
 app = FastAPI(
