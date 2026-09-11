@@ -29,6 +29,7 @@ class ResearchTask(Base):
     review_history = Column(JSON, default=list)
     review_rounds = Column(Integer, default=0)
     logs = Column(JSON, default=list)
+    metrics = Column(JSON, default=dict)
     error = Column(Text, default="")
 
     created_at = Column(DateTime, default=lambda: datetime.now())

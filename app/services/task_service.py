@@ -134,7 +134,7 @@ class TaskService:
                 await session.commit()
 
     @staticmethod
-    async def _write_completed(task_id: int, serialized: dict) -> ResearchTask:
+    async def _write_completed(task_id: int, serialized: dict, metrics: dict | None = None) -> ResearchTask:
         async with SessionLocal() as session:
             task = await session.get(ResearchTask, task_id)
             if task is None:
@@ -148,6 +148,7 @@ class TaskService:
             task.review_history = serialized["review_history"]
             task.review_rounds = serialized["review_rounds"]
             task.logs = serialized["logs"]
+            task.metrics = metrics or {}
             task.completed_at = datetime.now()
             task.locked_at = None
             task.heartbeat_at = None
@@ -208,7 +209,7 @@ class TaskService:
                 max_tavily_calls=settings.max_tavily_calls_per_task,
                 max_cost_cny=settings.max_cost_cny_per_task,
                 allow_paid=settings.allow_paid_provider,
-            ):
+            ) as tracker:
                 timeout = settings.task_soft_timeout_seconds
                 if timeout and timeout > 0:
                     try:
@@ -221,7 +222,7 @@ class TaskService:
                         ) from exc
                 else:
                     final_state = await asyncio.to_thread(graph.invoke, state)
-            return await TaskService._write_completed(task_id, _serialize_state(final_state))
+            return await TaskService._write_completed(task_id, _serialize_state(final_state), tracker.snapshot())
         except Exception as exc:  # noqa: BLE001
             await TaskService._mark_failed(task_id, exc)
             raise
@@ -248,11 +249,11 @@ class TaskService:
                     max_tavily_calls=settings.max_tavily_calls_per_task,
                     max_cost_cny=settings.max_cost_cny_per_task,
                     allow_paid=settings.allow_paid_provider,
-                ):
+                ) as tracker:
                     result = await graph.ainvoke(state, config=TaskService._thread_config(task_id))
             if "__interrupt__" in result:
                 return await TaskService._save_paused(task_id, result)
-            return await TaskService._write_completed(task_id, _serialize_state(result))
+            return await TaskService._write_completed(task_id, _serialize_state(result), tracker.snapshot())
         except Exception as exc:  # noqa: BLE001
             await TaskService._mark_failed(task_id, exc)
             raise
@@ -279,11 +280,11 @@ class TaskService:
                     max_tavily_calls=settings.max_tavily_calls_per_task,
                     max_cost_cny=settings.max_cost_cny_per_task,
                     allow_paid=settings.allow_paid_provider,
-                ):
+                ) as tracker:
                     result = await graph.ainvoke(
                         Command(resume=sub_questions), config=TaskService._thread_config(task_id)
                     )
-            return await TaskService._write_completed(task_id, _serialize_state(result))
+            return await TaskService._write_completed(task_id, _serialize_state(result), tracker.snapshot())
         except Exception as exc:  # noqa: BLE001
             await TaskService._mark_failed(task_id, exc)
             raise

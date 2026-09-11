@@ -23,6 +23,7 @@ from app.agents.writer import WriterAgent
 from app.config import settings
 from app.cost import BudgetExceeded
 from app.graph.state import ResearchState
+from app.observability import current_tracker
 
 
 class ResearchGraph:
@@ -139,6 +140,22 @@ class ResearchGraph:
             "log": [f"第{review_rounds}轮审核：{result['score']} 分"],
         }
 
+    @staticmethod
+    def _timed(name: str, fn):
+        """包装节点函数，把节点耗时记入当前 UsageTracker（无 tracker 时零开销）。"""
+        import time
+
+        def wrapper(state):
+            start = time.perf_counter()
+            try:
+                return fn(state)
+            finally:
+                tracker = current_tracker()
+                if tracker is not None:
+                    tracker.record_node(name, (time.perf_counter() - start) * 1000)
+
+        return wrapper
+
     def _human_review_node(self, state: ResearchState) -> dict:
         """planner 后暂停，等待用户确认/编辑子问题（需要 checkpointer）。"""
         proposed = list(state.get("sub_questions") or [])
@@ -182,12 +199,12 @@ class ResearchGraph:
         if enable_human_review and checkpointer is None:
             raise ValueError("enable_human_review=True 需要提供 checkpointer")
         graph = StateGraph(ResearchState)
-        graph.add_node("planner", self._plan_node)
-        graph.add_node("searcher", self._search_node)
-        graph.add_node("analyzer", self._analyze_node)
-        graph.add_node("writer", self._write_node)
-        graph.add_node("reviewer", self._review_node)
-        graph.add_node("finalize", self._finalize_node)
+        graph.add_node("planner", self._timed("planner", self._plan_node))
+        graph.add_node("searcher", self._timed("searcher", self._search_node))
+        graph.add_node("analyzer", self._timed("analyzer", self._analyze_node))
+        graph.add_node("writer", self._timed("writer", self._write_node))
+        graph.add_node("reviewer", self._timed("reviewer", self._review_node))
+        graph.add_node("finalize", self._timed("finalize", self._finalize_node))
 
         graph.add_edge(START, "planner")
         if enable_human_review:

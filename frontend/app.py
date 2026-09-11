@@ -84,7 +84,9 @@ def timeline(logs: list[str], limit: int = 12) -> None:
 
 
 def render_report_tabs(task: dict) -> None:
-    tab_report, tab_sources, tab_review, tab_logs = st.tabs(["📄 报告", "📎 来源", "🧪 审核历史", "🧭 执行日志"])
+    tab_report, tab_sources, tab_review, tab_metrics, tab_logs = st.tabs(
+        ["📄 报告", "📎 来源", "🧪 审核历史", "📊 指标", "🧭 执行日志"]
+    )
     with tab_report:
         report = task.get("final_report") or task.get("draft_report") or ""
         st.markdown(report or "（暂无报告）")
@@ -111,6 +113,22 @@ def render_report_tabs(task: dict) -> None:
                 st.markdown(f"- {suggestion}")
             for issue in item.get("issues") or []:
                 st.markdown(f"- ⚠️ {issue}")
+    with tab_metrics:
+        metrics = task.get("metrics") or {}
+        if not metrics:
+            st.info("暂无指标（任务未执行或为旧任务）")
+        else:
+            cols = st.columns(4)
+            cols[0].metric("LLM 调用", metrics.get("llm_calls", 0))
+            cols[1].metric("Tavily 调用", metrics.get("tavily_calls", 0))
+            cols[2].metric("tokens(输入/输出)", f"{metrics.get('prompt_tokens') or 0} / {metrics.get('completion_tokens') or 0}")
+            cols[3].metric("估算成本 ¥", metrics.get("estimated_cost_cny", 0))
+            st.markdown("**节点耗时（毫秒）**")
+            st.dataframe(metrics.get("node_latencies") or [], use_container_width=True, hide_index=True)
+            st.caption(
+                f"耗时 {metrics.get('elapsed_seconds', '-')}s ｜ JSON 解析失败 {metrics.get('json_parse_failures', 0)} ｜ "
+                f"搜索明细 {metrics.get('search_by_backend')}"
+            )
     with tab_logs:
         timeline(task.get("logs") or [], limit=60)
 

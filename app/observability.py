@@ -40,6 +40,7 @@ class UsageTracker:
 
     llm_calls: list[dict] = field(default_factory=list)
     search_calls: list[dict] = field(default_factory=list)
+    node_latencies: list[dict] = field(default_factory=list)
     json_parse_failures: int = 0
 
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
@@ -157,6 +158,10 @@ class UsageTracker:
         with self._lock:
             self.json_parse_failures += 1
 
+    def record_node(self, node: str, latency_ms: float) -> None:
+        with self._lock:
+            self.node_latencies.append({"node": node, "latency_ms": round(latency_ms, 1)})
+
     def snapshot(self) -> dict:
         with self._lock:
             prompt_tokens = [c["prompt_tokens"] for c in self.llm_calls if c["prompt_tokens"] is not None]
@@ -180,6 +185,8 @@ class UsageTracker:
                 "tavily_started": self._tavily_started,
                 "estimated_cost_cny": self._estimated_cost_locked(),
                 "json_parse_failures": self.json_parse_failures,
+                "tavily_calls": by_backend.get("tavily", 0),
+                "node_latencies": list(self.node_latencies),
                 "details": {"llm": self.llm_calls, "search": self.search_calls},
             }
 

@@ -41,6 +41,7 @@ def _task_detail(task: Any) -> dict:
             "draft_report": task.draft_report or "",
             "final_report": task.final_report or "",
             "review_history": task.review_history or [],
+            "metrics": task.metrics or {},
         }
     )
     return data
@@ -125,3 +126,11 @@ async def cancel_task(task_id: int) -> dict:
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"code": 200, "message": "success", "data": _task_detail(updated)}
+
+@router.get("/{task_id}/metrics")
+async def get_metrics(task_id: int) -> dict:
+    """返回任务指标（节点耗时/token/搜索次数/估算成本）。"""
+    task = await TaskService.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    return {"code": 200, "message": "success", "data": task.metrics or {}}

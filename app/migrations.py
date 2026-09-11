@@ -16,6 +16,7 @@ _MIGRATIONS = [
     ("heartbeat_at", "heartbeat_at DATETIME"),
     ("attempts", "attempts INTEGER DEFAULT 0"),
     ("cancel_requested", "cancel_requested BOOLEAN DEFAULT 0"),
+    ("metrics", "metrics JSON"),
 ]
 
 
