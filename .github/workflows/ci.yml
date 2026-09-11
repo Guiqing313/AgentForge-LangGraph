@@ -29,3 +29,16 @@ jobs:
         with:
           name: pip-freeze
           path: pip-freeze.txt
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare env for compose config
+        run: cp .env.example .env
+      - name: Build API image
+        run: docker build -t agentforge-api:ci .
+      - name: Build frontend image
+        run: docker build -t agentforge-frontend:ci -f frontend/Dockerfile .
+      - name: Validate compose
+        run: docker compose config --quiet

@@ -1,3 +1,6 @@
+# AgentForge 本地编排（C1 硬化）
+# 说明：Ollama（:11434）与 bge-m3 embedding 服务（:11435）运行在宿主机上，
+#       容器通过 host.docker.internal 访问，避免在 8GB 显存机器上做 GPU 容器直通。
 services:
   api:
     build: .
@@ -5,8 +8,25 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+      EMBEDDING_BASE_URL: http://host.docker.internal:11435
+      DATABASE_URL: sqlite+aiosqlite:////app/data/agentforge.db
+      CHECKPOINT_DB: /app/data/checkpoints.sqlite
+      CHROMA_PERSIST_DIR: /app/data/chroma
+      WORKER_ENABLED: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./data:/app/data
+      - ./docs/kb:/app/docs/kb:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
 
   frontend:
     build:
@@ -15,6 +35,14 @@ services:
     ports:
       - "8501:8501"
     environment:
-      - API_URL=http://api:8000
+      API_URL: http://api:8000
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8501/_stcore/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
