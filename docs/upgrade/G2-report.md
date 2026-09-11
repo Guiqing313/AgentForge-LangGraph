@@ -1,6 +1,6 @@
 # Gate G2 阶段报告（B1–B4）
 
-日期：2026-09-11 ｜ 分支：codex/agentforge-upgrade ｜ 当前回归：pytest 97 passed / ruff All checks passed!
+日期：2026-09-11 ｜ 分支：codex/agentforge-upgrade ｜ 当前回归：pytest 98 passed / ruff All checks passed!
 
 ## B1 interrupt/resume（人机协同）
 - 图：`build(checkpointer, enable_human_review=True)` 在 planner 后插入 `human_review`（interrupt），恢复用 `Command(resume=编辑后的子问题)`；默认路径不变。
@@ -30,7 +30,7 @@
 3a4660a docs(b2): 进程内 E2E 结果 + 卡顿事件复盘
 d20dca2 feat(b2): 单进程 worker（原子 claim/心跳/stale 恢复/取消）+ 卡顿修复 A-D
 94aba06 feat(b1): paused 持久化 + /resume API + 多页面前端 + E2E 验证
-（B4 待补本次提交）
+9ce1c3a feat(b4): 后端 SSE 事件流 + Gate G2 阶段报告
 ```
 
 ## Gate G2 建议抽验项（1–2 项）

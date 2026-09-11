@@ -252,6 +252,8 @@ duckduckgo-search==8.1.1
 **验收**：一次真实任务后 metrics 有节点耗时；usage 缺失记 null。
 
 ### B4 —— 后端 SSE（1 天）
+
+> 收口决策（2026-09-11）：`interrupt` 事件已在 B4 实现（paused 时发送一次后关闭该次流）；事件清单 status/log/node/interrupt/done/error；不做断线续传。
 **文件**：`app/routes/tasks.py`、`app/worker.py`（事件总线）、`tests/test_stream.py`
 **接口**：`GET /api/tasks/{id}/stream`；事件 `status/log/node/interrupt/done/error`；不做断线续传。
 **验收**：事件顺序正确、done/error 收口；首事件 ≤2s（记录 p50）；Streamlit 继续轮询。

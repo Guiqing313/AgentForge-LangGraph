@@ -13,11 +13,16 @@
   - `node`：新增节点耗时（来自 B3 的 metrics.node_latencies）；
   - `done` / `error`：终态收口后关闭。
 - 头部 `Cache-Control: no-cache`、`X-Accel-Buffering: no`；不实现 Last-Event-ID 续传。
+- **interrupt 事件（2026-09-11 收口）**：任务进入 `paused` 时发送一次 `interrupt` 事件（含用户可编辑的 `sub_questions`），随后关闭该次流；用户恢复后重新请求（不做断线续传）。事件清单与 PLAN 一致：status/log/node/interrupt/done/error。
 - 前端保持轮询（4A），未改流式渲染。
+
+### 首事件 p50 测量
+- 脚本：`scripts/measure_sse_latency.py`（进程内 ASGI，5 次采样）。
+- 结果：`samples_ms=[16.6, 4.1, 3.5, 3.5, 3.5]`，**p50 = 3.5ms**（≤2s 参考指标，达标）。
 
 ## 3. 测试
 - `tests/test_stream.py`：不存在任务 404；已完成任务能收到 status/log/node/done 事件。
-- 回归：`pytest → 97 passed`；`ruff → All checks passed!`。
+- 回归：`pytest → 98 passed`；`ruff → All checks passed!`。
 
 ## 4. 边界
 - 事件源为数据库轮询（跨进程/worker 安全），不依赖进程内事件总线；代价是最小 0.5s 延迟。

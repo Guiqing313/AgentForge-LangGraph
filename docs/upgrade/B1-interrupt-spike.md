@@ -1,6 +1,6 @@
 # B1 interrupt/resume（图级）证据
 
-日期：2026-09-11 ｜ 状态：图级完成 ✅ ｜ API/前端 ⏳ 待做 ｜ 成本：0（mock LLM）
+日期：2026-09-11 ｜ 状态：✅ 图级 + API + 前端全部完成 ｜ 成本：0（mock LLM）
 
 ## 1. Spike（纯图，SQLite checkpointer）
 命令：`python scripts/spike_interrupt.py`
@@ -32,10 +32,10 @@ report_chars=59
 DEMO_OK
 ```
 
-## 5. 待做（B1 剩余）
-- `TaskService` 的 `paused` 状态持久化 + `POST /api/tasks/{id}/resume` 接口；
-- Streamlit 展示 paused 并提供子问题编辑/恢复按钮；
-- `HUMAN_REVIEW_ENABLED` 开关与 API 测试（404/409/正常 resume）。
+## 5. API 与前端（已完成）
+- ✅ `TaskService` paused 持久化 + `POST /api/tasks/{id}/resume`（404/409/正常 resume）；
+- ✅ Streamlit paused 展示 + 子问题编辑/恢复按钮；
+- ✅ `HUMAN_REVIEW_ENABLED` 开关与 API 测试。
 
 ## 6. 边界
 - 本阶段全部使用 mock LLM（不调用 Ollama/DeepSeek）；真实生成路径的 interrupt/resume 演示待 Ollama 启动后可选补做。

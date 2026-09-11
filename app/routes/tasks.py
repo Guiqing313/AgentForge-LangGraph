@@ -153,6 +153,7 @@ async def stream_task(task_id: int):
         last_status = None
         sent_logs = 0
         sent_nodes = 0
+        sent_interrupt = False
         while True:
             current = await TaskService.get_task(task_id)
             if current is None:
@@ -161,6 +162,10 @@ async def stream_task(task_id: int):
             if current.status != last_status:
                 last_status = current.status
                 yield _sse("status", {"status": last_status})
+                if last_status == "paused" and not sent_interrupt:
+                    sent_interrupt = True
+                    yield _sse("interrupt", {"status": "paused", "sub_questions": current.sub_questions or []})
+                    return  # 暂停信号送达后关闭流；恢复后重新请求（不做断线续传）
             logs = current.logs or []
             for line in logs[sent_logs:]:
                 sent_logs += 1
