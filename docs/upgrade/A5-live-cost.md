@@ -18,7 +18,7 @@ equire_paid_usage / nforce_budget） |
 | pp/graph/research_graph.py | 修复 contextvars 未传入搜索线程（copy_context）；搜索调用现可被统计 |
 | pp/agents/base.py | JSON 解析失败后追加一次严格重试（本地 7B 偶发输出 Markdown） |
 | scripts/run_live_local.py | 本地 live 运行 + 成本闸门；--compare-deepseek --allow-paid 为付费入口 |
-| `tests/test_cost_gate.py` | 成本/闸门测试（随复测修复扩充；当前全量 77 项通过） |
+| `tests/test_cost_gate.py` | 成本/闸门测试（随复测修复扩充；当前全量 81 项通过） |
 | data/live_results.json | 本次本地 live 的真实记录 |
 
 ## 3. 第一轮本地 run（已被第 8 节最终 run 取代，仅作过程记录）
@@ -45,7 +45,7 @@ equire_paid_usage 直接拒绝继续；
 
 ## 6. 验证
 `
-pytest → 77 passed
+pytest → 81 passed
 ruff check . → All checks passed!
 `
 
@@ -76,4 +76,4 @@ ruff check . → All checks passed!
 
 ## 9. 复测修复（2026-09-11）
 - partial usage fail-closed、预算前置、价格语义、Tavily 硬上限、文档一致性、README 自环、conftest 强隔离、loader manifest 白名单均已修复；详见 `docs/upgrade/REMEDIATION-retest.md`。
-- 修复后回归：pytest 77 passed、ruff All checks passed。
+- 修复后回归：pytest 81 passed、ruff All checks passed。

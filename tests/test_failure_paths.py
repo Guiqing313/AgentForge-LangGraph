@@ -118,3 +118,27 @@ def test_chat_json_retries_once_on_parse_failure(monkeypatch):
     assert result == {"ok": True}
     assert flaky.calls == 2
     assert tracker.snapshot()["json_parse_failures"] == 1
+
+
+def test_reformulate_does_not_swallow_hard_stops(monkeypatch):
+    """复测第五轮 P1：预算/付费硬停止必须从 _reformulate 穿透。"""
+    import pytest
+
+    from app.agents.searcher import SearcherAgent
+    from app.cost import BudgetExceeded, PaidProviderNotVerified
+
+    agent = SearcherAgent(web_search=_StubWebSearch())
+
+    def budget_stop(system_prompt, user_prompt):
+        raise BudgetExceeded("budget stop")
+
+    monkeypatch.setattr(agent, "_chat_json", budget_stop)
+    with pytest.raises(BudgetExceeded):
+        agent._reformulate("q")
+
+    def paid_stop(system_prompt, user_prompt):
+        raise PaidProviderNotVerified("paid stop")
+
+    monkeypatch.setattr(agent, "_chat_json", paid_stop)
+    with pytest.raises(PaidProviderNotVerified):
+        agent._reformulate("q")

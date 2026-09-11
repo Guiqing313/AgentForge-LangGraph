@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 
 from app.agents.base import BaseAgent
 from app.config import settings
-from app.cost import BudgetExceeded
+from app.cost import BudgetExceeded, PaidProviderNotVerified
 from app.observability import current_tracker
 from app.tools.rag import LocalSearchTool
 from app.tools.search import WebSearchTool
@@ -175,6 +175,8 @@ class SearcherAgent(BaseAgent):
             queries = result.get("search_queries", []) if isinstance(result, dict) else []
             cleaned = [q for q in queries if isinstance(q, str) and q.strip()]
             return cleaned[:3]
+        except (BudgetExceeded, PaidProviderNotVerified):
+            raise  # 预算/付费校验属于硬停止，不得被降级为"无新查询"
         except Exception:  # noqa: BLE001
             return []
 

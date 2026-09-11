@@ -36,4 +36,4 @@ ruff check . → All checks passed!
 | TaskService/API 未接入限制 | `TaskService.run_task` 用同一个 `observability.track(...)` 包裹 `graph.invoke`，并走付费 gate；`test_task_service_attaches_budget_guard` |
 | A5 旧测试数/旧语义 | 已更新为 77 项；旧"待授权/verified_at"段落已清理 |
 
-修复后回归：`pytest → 77 passed`、`ruff All checks passed!`。
+修复后回归：`pytest → 81 passed`、`ruff All checks passed!`。
