@@ -1,6 +1,6 @@
 # Gate G2 阶段报告（B1–B4）
 
-日期：2026-09-11 ｜ 分支：codex/agentforge-upgrade ｜ 当前回归：pytest 98 passed / ruff All checks passed!
+日期：2026-09-11 ｜ 分支：codex/agentforge-upgrade ｜ 当前回归：pytest 103 passed / ruff All checks passed!
 
 ## B1 interrupt/resume（人机协同）
 - 图：`build(checkpointer, enable_human_review=True)` 在 planner 后插入 `human_review`（interrupt），恢复用 `Command(resume=编辑后的子问题)`；默认路径不变。

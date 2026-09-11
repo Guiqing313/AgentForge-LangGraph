@@ -29,7 +29,7 @@
 
 ### 4.1 单元/集成测试
 ```
-D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe -m pytest -q
+<repo>\venv\Scripts\python.exe -m pytest -q
 28 passed in 2.82s
 ```
 （22 项基线 + 6 项新增；离线，无外部调用）
@@ -38,7 +38,7 @@ D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe -m pytest -q
 命令：
 ```powershell
 $env:LLM_PROVIDER="ollama"; $env:LLM_MODE="live"
-D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\smoke_provider.py --topic "RAG 与 Agent 的区别"
+<repo>\venv\Scripts\python.exe scripts\smoke_provider.py --topic "RAG 与 Agent 的区别"
 ```
 输出（UTF-8）：
 ```

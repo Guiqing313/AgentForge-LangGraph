@@ -1,6 +1,6 @@
 r"""测量 SSE 首事件延迟（进程内 ASGI，无端口）。
 
-用法：D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\measure_sse_latency.py
+用法：<repo>\venv\Scripts\python.exe scripts\measure_sse_latency.py
 """
 
 from __future__ import annotations

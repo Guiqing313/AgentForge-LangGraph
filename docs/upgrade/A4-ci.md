@@ -34,7 +34,7 @@ fastmcp==4.0.3
 
 ## 4. 验证证据
 ```
-D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe -m pytest
+<repo>\venv\Scripts\python.exe -m pytest
 51 passed in 3.07s
 
 ... -m ruff check .

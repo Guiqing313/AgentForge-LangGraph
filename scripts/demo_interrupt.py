@@ -1,7 +1,7 @@
 r"""B1 演示：真实 ResearchGraph + AsyncSqliteSaver 的 interrupt → 编辑子问题 → resume。
 
 用法（AgentForge venv，mock LLM，不需要 Ollama）：
-    D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\demo_interrupt.py
+    <repo>\venv\Scripts\python.exe scripts\demo_interrupt.py
 """
 
 from __future__ import annotations

@@ -4,7 +4,7 @@ r"""A2 端到端记忆演示：两个真实任务（mock LLM）经 task_service 
 任务2「RAG 检索增强」执行前检索到记忆 → planner 日志出现「注入 N 条历史记忆」。
 
 用法（AgentForge venv，需 embedding 服务运行，外部 API 成本 0）：
-    D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\demo_memory_task.py
+    <repo>\venv\Scripts\python.exe scripts\demo_memory_task.py
 """
 
 from __future__ import annotations

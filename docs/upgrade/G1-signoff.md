@@ -10,3 +10,5 @@
 - B1 推荐先做 interrupt/resume spike（30–60 分钟，纯图 + checkpointer，mock LLM）。
 - 依赖：`langgraph-checkpoint-sqlite==3.1.1`（A4 已 pin；安装前备份 pip freeze，安装后跑全量回归）。
 - 服务状态：embedding 服务由用户启动（:11435）；Ollama 保持停止（spike 不需要）。
+
+> 后续（C2）：检索评测已从 10 题冒烟升级为 32 题分层工程评测，最新数字见 `docs/upgrade/A1-kb-report.md` 第 3bis 节与 `eval_report.md`。

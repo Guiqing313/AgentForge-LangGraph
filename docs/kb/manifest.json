@@ -3,7 +3,7 @@
   "documents": [
     {
       "file": "README.md",
-      "source_path": "D:\\codex使用文件夹\\AgentForge\\README.md",
+      "source_path": "本仓库项目文档",
       "license": "AgentForge 项目 README（MIT License）",
       "sha256": "2c0e3acfdfb9fe3f24974057e2ac1209ef2612e34fbd99754f3d09e6c46b5123",
       "size_chars": 3469,
@@ -11,7 +11,7 @@
     },
     {
       "file": "tutorial-AgentForge.md",
-      "source_path": "D:\\codex使用文件夹\\AgentForge\\tutorial-AgentForge.md",
+      "source_path": "本仓库项目文档",
       "license": "AgentForge 源码课程文档（用户自有）",
       "sha256": "9d29116117ec8f97a991e88192bde808e15d9fae8f59cde093bd029ca9c17b6a",
       "size_chars": 19713,
@@ -19,7 +19,7 @@
     },
     {
       "file": "大模型幻觉与Prompt注入风险工程化应对.md",
-      "source_path": "D:\\codex使用文件夹\\SmartKB2.0\\data\\docs\\大模型幻觉与Prompt注入风险工程化应对.md",
+      "source_path": "用户自写学习笔记（已获准公开）",
       "license": "用户自写学习笔记（用户确认可公开）",
       "sha256": "e5d1d51847cea3f861c2b2b64b4de6940d4941aac9c602a76008658f281dfe45",
       "size_chars": 22458,
@@ -27,7 +27,7 @@
     },
     {
       "file": "微调与LoRA知识.md",
-      "source_path": "D:\\codex使用文件夹\\SmartKB2.0\\data\\docs\\微调与LoRA知识.md",
+      "source_path": "用户自写学习笔记（已获准公开）",
       "license": "用户自写学习笔记（用户确认可公开）",
       "sha256": "3d293a321094de56ba4289064bf8b0a843d28dc04885d2c739ad458e728b419b",
       "size_chars": 517,
@@ -35,7 +35,7 @@
     },
     {
       "file": "主流大模型与应用范式分析.md",
-      "source_path": "D:\\codex使用文件夹\\SmartKB2.0\\data\\docs\\主流大模型与应用范式分析.md",
+      "source_path": "用户自写学习笔记（已获准公开）",
       "license": "用户自写学习笔记（用户确认可公开）",
       "sha256": "0eb49b69e9a0c3e403cd254a123c3dfa1aa86bcf9269bcc90d2813f85d3f8dbc",
       "size_chars": 29024,

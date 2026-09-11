@@ -1,13 +1,13 @@
 r"""本地 bge-m3 embedding 服务（用 pytorch_env 启动，供 AgentForge 通过 HTTP 调用）。
 
 启动（在 AgentForge-v2 目录下）：
-    D:\ANACONDA\envs\pytorch_env\python.exe scripts\embed_server.py --port 11435
+    <embedding-env>\python.exe scripts\embed_server.py --port 11435
 
 自检（只加载模型并编码一次，不启动服务）：
-    D:\ANACONDA\envs\pytorch_env\python.exe scripts\embed_server.py --check
+    <embedding-env>\python.exe scripts\embed_server.py --check
 
 设计说明：
-- 复用 D:\codex使用文件夹\SmartKB2.0\models\bge-m3 本地权重，不重新下载；
+- 复用 <local-smartkb>\models\bge-m3 本地权重，不重新下载；
 - 不向 AgentForge venv 安装 torch/FlagEmbedding；
 - 服务不可用时 AgentForge 侧 fail-closed（local_search 抛错，由 SearcherAgent 记录降级）。
 """
@@ -15,13 +15,15 @@ r"""本地 bge-m3 embedding 服务（用 pytorch_env 启动，供 AgentForge 通
 from __future__ import annotations
 
 import argparse
+import os
 import threading
 import time
+from pathlib import Path
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 
-DEFAULT_MODEL_PATH = r"D:/codex使用文件夹/SmartKB2.0/models/bge-m3"
+DEFAULT_MODEL_PATH = os.getenv("BGE_M3_MODEL_PATH", str(Path(__file__).resolve().parent.parent / "models" / "bge-m3"))
 
 app = FastAPI(title="AgentForge Embedding Service", version="0.1.0")
 

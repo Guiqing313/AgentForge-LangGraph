@@ -1,7 +1,7 @@
 r"""A2 记忆演示：真实 embedding 服务 + 真实 Chroma。
 
 用法（AgentForge venv，需 embedding 服务运行）：
-    D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\demo_memory.py
+    <repo>\venv\Scripts\python.exe scripts\demo_memory.py
 """
 
 from __future__ import annotations

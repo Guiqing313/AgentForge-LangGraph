@@ -22,7 +22,7 @@
 
 ## 3. 测试
 - `tests/test_stream.py`：不存在任务 404；已完成任务能收到 status/log/node/done 事件。
-- 回归：`pytest → 98 passed`；`ruff → All checks passed!`。
+- 回归：`pytest → 103 passed`；`ruff → All checks passed!`。
 
 ## 4. 边界
 - 事件源为数据库轮询（跨进程/worker 安全），不依赖进程内事件总线；代价是最小 0.5s 延迟。

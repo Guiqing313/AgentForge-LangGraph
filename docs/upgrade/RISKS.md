@@ -13,7 +13,7 @@
 | U2 | Git 推送/凭据 | 需要推送远端时 | 用户执行 `git push` 或授权（沙箱读不到 Windows Git 凭据） |
 | U3 | Docker | Phase A/B 完成后 | 用户决定是否安装（需管理员权限 + GUI） |
 | U4 | 付费授权与账单 | 调用 DeepSeek / Tavily 超额前 | 用户确认（DeepSeek 恰 1 次、≤2 元；AI 看不到真实账单） |
-| U5 | 环境持久化 | 重启电脑/服务后 | 显式设置 `OLLAMA_MODELS=D:\OllamaModels` |
+| U5 | 环境持久化 | 重启电脑/服务后 | 显式设置 `OLLAMA_MODELS=<ollama-models-dir>` |
 | U6 | 残留进程收尾 | turn 中断后 | 用户按下方 stop 命令收尾（AI 无法跨 turn 保证清理） |
 
 ### 后台进程与停止命令（U6）
@@ -52,7 +52,7 @@ netstat -ano | findstr ":11435 :11434"
 | T5 | worktree 无 .env | A2/A5 缺 key | 需要时用环境变量显式注入；**禁止复制主仓库 .env 进 worktree** | 误把 key 写入文件 |
 | T6 | 时间偏乐观（8–12 净工作日） | 日历 2–3 周 | A 阶段超 ~4 净工作日未到 G1、或 B4 spike 超 90 分钟 → 砍 B2/B4 范围，不压缩测试 | 触发即请示 |
 | T7 | 密钥安全（DeepSeek/Tavily key 曾在对话明文出现） | 泄露风险 | 建议轮换；新 key 不进 worktree/提交；`.env` 在 .gitignore | 发现 key 进入 git |
-| T8 | 语料公开范围 | 隐私/合规 | 6 篇已扫描无 key/PII；但《AI应用实习面试学习文档.md》为求职笔记，**推送前需用户最终确认** | 用户未确认前不推送 |
+| T8 | 语料公开范围 | 隐私/合规 | 发布前扫描全部语料，确认不含个人求职材料/密钥/PII | 用户未确认前不推送 |
 
 ---
 

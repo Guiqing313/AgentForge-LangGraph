@@ -3,8 +3,8 @@ r"""B1+B2 端到端验证（短轮询、增量输出）。
 前置：
     1) 重置演示库：python scripts/reset_demo_db.py
     2) 启动后端（示例）：
-       $env:DATABASE_URL="sqlite+aiosqlite:///D:/codex使用文件夹/AgentForge-v2/data/demo.db"
-       $env:CHECKPOINT_DB="D:/codex使用文件夹/AgentForge-v2/data/demo_checkpoints.sqlite"
+       $env:DATABASE_URL="sqlite+aiosqlite:///<repo>/data/demo.db"
+       $env:CHECKPOINT_DB="<repo>/data/demo_checkpoints.sqlite"
        $env:LLM_MODE="mock"; $env:HUMAN_REVIEW_ENABLED="true"; $env:WEB_SEARCH_ENABLED="false"
        uvicorn app.main:app --port 8001
 

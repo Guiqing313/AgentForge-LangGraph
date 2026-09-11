@@ -1,7 +1,7 @@
 r"""B1+B2 端到端（进程内 ASGI TestClient；不启动真实端口、无残留进程）。
 
 用法：
-    D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\e2e_review_flow_inprocess.py
+    <repo>\venv\Scripts\python.exe scripts\e2e_review_flow_inprocess.py
 """
 
 from __future__ import annotations

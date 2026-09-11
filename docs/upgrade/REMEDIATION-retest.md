@@ -12,7 +12,7 @@
 | README Mermaid 仍有图级自环 | P2 | 删除 `C --> C`，重试说明移到节点标签 | `test_docs_match_real_graph_structure`（`"C --> C" not in readme`） |
 | conftest 用 setdefault 可绕过 | P2 | 强制覆盖 `LLM_MODE=mock`、`DATABASE_URL=<temp>` | `test_tests_use_isolated_database` |
 | loader 不校验 manifest | P2 | manifest 作为白名单；登记文件 sha256 不匹配则拒绝加载 | `test_loader_uses_manifest_whitelist`、`test_loader_rejects_manifest_sha_mismatch` |
-| Memory 阈值未做敏感度实验 / eval 外推有限 | P2 | 不改代码，保留文档披露（阈值 0.35 为初值、10 题为小型冒烟指标） | A1/A2 报告 |
+| Memory 阈值未做敏感度实验 / eval 外推有限 | P2 | C2 已把 10 题冒烟升级为 32 题分层工程评测（基础/长尾/多跳/拒答）；详见 `docs/upgrade/A1-kb-report.md` 与 `eval_report.md` | A1/A2 报告 |
 
 ## 回归
 
@@ -36,4 +36,4 @@ ruff check . → All checks passed!
 | TaskService/API 未接入限制 | `TaskService.run_task` 用同一个 `observability.track(...)` 包裹 `graph.invoke`，并走付费 gate；`test_task_service_attaches_budget_guard` |
 | A5 旧测试数/旧语义 | 已更新为 77 项；旧"待授权/verified_at"段落已清理 |
 
-修复后回归：`pytest → 98 passed`、`ruff All checks passed!`。
+修复后回归：`pytest → 103 passed`、`ruff All checks passed!`。

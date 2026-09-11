@@ -32,7 +32,7 @@
 
 ### 4.1 测试
 ```
-D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe -m pytest -q
+<repo>\venv\Scripts\python.exe -m pytest -q
 37 passed in 2.60s
 ```
 （22 基线 + 6 provider + 3 KB + 6 Memory；全部离线确定性）

@@ -19,3 +19,4 @@ build/
 *.egg-info/
 data/embed_server*.log
 *.sqlite
+data/eval_report.json

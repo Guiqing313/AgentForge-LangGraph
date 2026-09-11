@@ -1,7 +1,7 @@
 r"""Provider 冒烟脚本：验证当前 provider 能真实返回可用 JSON。
 
 用法：
-    D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\smoke_provider.py
+    <repo>\venv\Scripts\python.exe scripts\smoke_provider.py
     # 需要本地 Ollama 已启动；如要测 DeepSeek，设置 LLM_PROVIDER=deepseek
 
 说明：本脚本会产生真实调用（Ollama 本地成本 0；DeepSeek 付费，谨慎使用）。

@@ -1,12 +1,12 @@
 # G3 DoD 收口清单（对照 PLAN-v2.md 第 9 节）
 
-日期：2026-09-11 ｜ 分支 codex/agentforge-upgrade ｜ 回归：pytest 98 passed / ruff All checks passed!
+日期：2026-09-11 ｜ 分支 codex/agentforge-upgrade ｜ 回归：pytest 103 passed / ruff All checks passed!
 
 | DoD 项 | 状态 | 证据 |
 |---|---|---|
 | G0/G1/G2/G3 通过并留证据 | G0 ✅ / G1 ✅（用户签署）/ G2 ✅（独立复验）/ **G3 ✅（2026-09-11 用户确认 Memory 与人机协同措辞）** | G0-baseline.md、A0-A5、B1-B4、G1-signoff.md、G2-report.md、本文件 |
-| pytest + CI 全绿 | pytest ✅ 98 passed；ruff ✅；远端 CI ⏸（未推送，BLOCKED） | tests/、.github/workflows/ci.yml |
-| local_search 真实非空 + KB 报告 | ✅ | docs/upgrade/A1-kb-report.md（hit_rate@3 0.90 / MRR 0.85）、MCP stdio 验证 |
+| pytest + CI 全绿 | pytest ✅ 103 passed；ruff ✅；远端 CI ⏸（未推送，BLOCKED） | tests/、.github/workflows/ci.yml |
+| local_search 真实非空 + KB 报告 | ✅ | docs/upgrade/A1-kb-report.md + eval_report.md（32 题分层：hit_rate@3 0.6296 / MRR@3 0.5617 / nDCG@3 0.6622 / 拒答代理 1.0）、MCP stdio 验证 |
 | Memory 可复现演示 | ✅ 实现+测试+演示完成；**用户 2026-09-11 确认措辞：跨任务经验记忆**（账本 claim-af-002 = 已确认） | tests/test_memory.py、scripts/demo_memory_task.py、A2-memory.md |
 | interrupt/resume 可复现演示 | ✅ 用户 2026-09-11 确认措辞：规划后暂停/编辑子问题/恢复执行（账本 claim-af-003 = 已确认） | tests/test_interrupt.py、scripts/e2e_review_flow_inprocess.py（E2E_OK）、B1-interrupt-spike.md |
 | worker + 恢复 + 取消 + 轻量迁移 | ✅（running 取消为 best-effort） | app/worker.py、tests/test_worker.py、tests/test_claim_race.py、B2-worker.md |

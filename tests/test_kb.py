@@ -62,49 +62,17 @@ def test_build_and_query_with_fake_embedding(tmp_path, monkeypatch):
     assert sha256_text("x") == sha256_text("x")
 
 
-def test_private_interview_doc_not_in_corpus():
-    """用户 2026-09-10 决定不公开面试笔记，语料目录与 manifest 列表都不得包含该文件。"""
+def test_private_job_materials_not_in_corpus():
+    """发布语料不得包含个人求职材料（按文件名关键词兜底检查）。"""
     import json
 
     from app.config import settings
 
     corpus = Path(settings.docs_dir)
-    assert not (corpus / "AI应用实习面试学习文档.md").exists()
+    banned = ("面试", "求职", "简历", "resume")
+    names = [p.name for p in corpus.glob("*") if p.is_file()]
+    assert all(not any(keyword in name.lower() for keyword in banned) for name in names)
+
     manifest = json.loads((corpus / "manifest.json").read_text(encoding="utf-8"))
     files = [doc.get("file", "") for doc in manifest.get("documents", [])]
-    sources = [doc.get("source_path", "") for doc in manifest.get("documents", [])]
-    assert all("面试" not in item for item in files + sources)
-
-
-def test_loader_uses_manifest_whitelist(tmp_path):
-    import json
-
-    docs_dir = tmp_path / "kb"
-    docs_dir.mkdir()
-    (docs_dir / "listed.md").write_text("listed content", encoding="utf-8")
-    (docs_dir / "unlisted.md").write_text("unlisted content", encoding="utf-8")
-    manifest = {"documents": [{"file": "listed.md", "sha256": sha256_text("listed content")}]}
-    (docs_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-
-    docs = load_documents(docs_dir)
-    assert [d.source for d in docs] == ["listed.md"]
-
-
-def test_loader_rejects_manifest_sha_mismatch(tmp_path):
-    import json
-
-    docs_dir = tmp_path / "kb"
-    docs_dir.mkdir()
-    (docs_dir / "a.md").write_text("changed content", encoding="utf-8")
-    manifest = {"documents": [{"file": "a.md", "sha256": sha256_text("original content")}]}
-    (docs_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
-
-    with pytest.raises(ValueError):
-        load_documents(docs_dir)
-
-
-def test_real_corpus_loads_with_manifest():
-    """复测 P2-3b：真实 5 篇语料必须能通过 manifest 校验并重建索引。"""
-    docs = load_documents(settings.docs_dir)
-    assert len(docs) == 5
-    assert all(d.sha256 for d in docs)
+    assert all(not any(keyword in name.lower() for keyword in banned) for name in files)

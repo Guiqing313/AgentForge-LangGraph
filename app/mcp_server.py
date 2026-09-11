@@ -1,7 +1,7 @@
 """AgentForge MCP Server：把现有工具暴露成标准 MCP 工具，供外部 Agent（Claude/Codex 等）调用。
 
 启动方式（推荐，任意目录都能跑）：
-    D:/codex使用文件夹/venv-mcp/Scripts/fastmcp.exe dev inspector app/mcp_server.py:mcp
+    <workspace>/venv-mcp/Scripts/fastmcp.exe dev inspector app/mcp_server.py:mcp
 """
 import sys
 from pathlib import Path

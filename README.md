@@ -9,7 +9,7 @@
 - **5 个专业 Agent**：规划 / 搜索 / 分析 / 撰写 / 审核，LangGraph 状态图 + 条件路由；
 - **受控 ReAct 搜索**：单节点并行处理全部子问题；每个子问题内部最多 2 轮（不足则改写查询词）；网络搜索失败如实降级、禁止编造来源；
 - **审核闭环**：结构化评分（1-10）+ 定向建议，不合格回写修订；达到评分线或最大轮次强制收口；
-- **真实本地知识库**：`docs/kb/`（manifest 白名单 + sha256 校验）→ 分块 500/重叠 50 → bge-m3（本地 HTTP 服务）→ Chroma；检索评估 hit_rate@3 / MRR；
+- **真实本地知识库**：`docs/kb/`（manifest 白名单 + sha256 校验）→ 分块 500/重叠 50 → bge-m3（本地 HTTP 服务）→ Chroma；检索评测为 32 题分层集（基础/长尾/多跳/库外拒答），输出 hit_rate@k、MRR@k、recall@k、nDCG@k 与拒答代理准确率；
 - **跨任务经验记忆**：任务完成后把主题/子问题/关键发现写入 `agent_memory`；相似任务在 planner 前检索并注入"参考背景"（**仅跨任务经验记忆，不是完整短期+长期记忆系统**）；
 - **人机协同（interrupt/resume）**：`HUMAN_REVIEW_ENABLED=true` 时 planner 后暂停，用户可编辑子问题后 `POST /api/tasks/{id}/resume` 恢复；
 - **单进程 worker**：FastAPI lifespan 内轮询 pending，原子 claim（UPDATE...RETURNING）、心跳、stale 恢复、attempts；`POST /api/tasks/{id}/cancel`（running 为 best-effort）；
@@ -17,7 +17,7 @@
 - **SSE 事件流**：`GET /api/tasks/{id}/stream`（status/log/node/interrupt/done/error；**不做断线续传**，Streamlit 仍用轮询）；
 - **MCP**：FastMCP 暴露 `web_search` / `local_search` / `calculate`（stdio，可被 Claude Desktop / Codex 接入）；
 - **前端（Streamlit）**：发起研究 / 任务历史 / 知识库（语料+检索预览）/ 实验对比 / 系统信息；URL 深链接 `?page=kb` 等；
-- **工程化**：pytest（98 项）、ruff、CI workflow、依赖锁定、单任务硬上限与成本闸门。
+- **工程化**：pytest（103 项）、ruff、CI workflow、依赖锁定、单任务硬上限与成本闸门。
 
 ## 系统架构
 
@@ -55,11 +55,12 @@ pip install -r requirements-lock.txt
 
 ```powershell
 # Ollama（模型目录按你的实际位置设置）
-$env:OLLAMA_MODELS="D:\OllamaModels"; ollama serve
+$env:OLLAMA_MODELS="<ollama-models-dir>"; ollama serve
 ollama pull qwen2.5:7b
 
-# bge-m3 embedding 服务（复用本地权重，避免向主 venv 安装 torch/FlagEmbedding）
-D:\ANACONDA\envs\pytorch_env\python.exe scripts\embed_server.py --port 11435
+# bge-m3 embedding 服务（用已安装 FlagEmbedding 的独立环境启动，避免向主 venv 安装 torch）
+$env:BGE_M3_MODEL_PATH="<你的 bge-m3 模型目录>"
+python scripts/embed_server.py --port 11435
 ```
 
 ### 3. 构建知识库
@@ -67,7 +68,7 @@ D:\ANACONDA\envs\pytorch_env\python.exe scripts\embed_server.py --port 11435
 ```powershell
 # docs/kb 下放入允许公开的 md/txt，并维护 manifest.json（sha256 白名单）
 python scripts/build_kb.py --rebuild
-python -m app.kb.eval_kb          # hit_rate@3 / MRR
+python -m app.kb.eval_kb --k 3 --out data/eval_report.json --markdown docs/upgrade/eval_report.md
 ```
 
 ### 4. 配置（.env）
@@ -139,7 +140,7 @@ AgentForge/
 ├── docs/upgrade/            # 各阶段证据（G0/G1/G2/G3、A1-A5、B1-B4、RISKS）
 ├── frontend/app.py          # Streamlit 多页面
 ├── scripts/                 # build_kb / embed_server / e2e / measure_sse_latency / MCP 验证
-├── tests/                   # 98 项测试
+├── tests/                   # 103 项测试
 ├── Dockerfile / docker-compose.yml
 └── requirements-lock.txt
 ```

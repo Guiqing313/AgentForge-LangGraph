@@ -26,7 +26,7 @@
 
 ### 4.1 测试
 ```
-D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe -m pytest -q
+<repo>\venv\Scripts\python.exe -m pytest -q
 44 passed in 3.08s
 ```
 （22 基线 + 6 provider + 3 KB + 6 Memory + 7 Consistency）

@@ -1,7 +1,7 @@
 r"""MCP 真实调用验证：用 fastmcp Client 通过 stdio 启动 app/mcp_server.py 并调用 local_search。
 
 运行（venv-mcp）：
-    D:\codex使用文件夹\venv-mcp\Scripts\python.exe scripts\verify_mcp.py
+    <workspace>\venv-mcp\Scripts\python.exe scripts\verify_mcp.py
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 # AgentForge v2.0 最终行动方案（已获用户批准执行）
 
-> 批准时间：2026-09-10。执行分支：`codex/agentforge-upgrade`；执行 worktree：`D:\codex使用文件夹\AgentForge-v2`。
+> 批准时间：2026-09-10。执行分支：`codex/agentforge-upgrade`；执行 worktree：`<repo>`。
 > 基线提交：`498e446 加入mcp服务`。
 > 协作方式：**AI 全程执行，用户只在 Gate 审核**；任何依赖/破坏性变更即时询问。
 
@@ -10,7 +10,7 @@
 
 1. 目标岗位：主投 AI 应用工程师，同时具备 AI Agent 能力；项目定位明确偏向 Agent。
 2. 执行方式：AI 全程接管，用户只在 Gate 处审核。
-3. 环境：Ollama 可用（`qwen2.5:7b` + `nomic-embed-text` 已有 manifest，位于 `D:\OllamaModels`）；Docker 未装，用户愿意在 Phase A/B 后决定是否安装。
+3. 环境：Ollama 可用（`qwen2.5:7b` + `nomic-embed-text` 已有 manifest，位于 `<ollama-models-dir>`）；Docker 未装，用户愿意在 Phase A/B 后决定是否安装。
 4. 交付形态：仅本地演示，不做公网部署 / 鉴权体系。
 5. 测试成本：≤10 元人民币（口径 = 外部 API 现金支出；本地 Ollama 计 0）。
 6. 必做功能：Memory（记忆）+ interrupt/resume（人机协同）。
@@ -51,9 +51,9 @@
 
 ## 2. 执行协议
 
-- **worktree 隔离**：所有改造在 `D:\codex使用文件夹\AgentForge-v2`（分支 `codex/agentforge-upgrade`）执行；主工作区 `D:\codex使用文件夹\AgentForge` 不动（保留其 venv 与 data 供运行）。
+- **worktree 隔离**：所有改造在 `<repo>`（分支 `codex/agentforge-upgrade`）执行；主工作区 `<repo>` 不动（保留其 venv 与 data 供运行）。
 - **一个任务 = 一个 commit**；每个任务产出 `docs/upgrade/<任务ID>.md` 证据（命令、输出摘要、测试结果、截图路径、成本记录）。
-- **复用主仓库 venv**：`D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe`（不复制 venv；依赖安装会记录到 docs/upgrade/DEPS.md）。若出现 numpy/torch 级冲突，触发硬停止并请示。
+- **复用主仓库 venv**：`<repo>\venv\Scripts\python.exe`（不复制 venv；依赖安装会记录到 docs/upgrade/DEPS.md）。若出现 numpy/torch 级冲突，触发硬停止并请示。
 - **Gate**：G0 → G1 → G2 → G3，每 Gate 停止等待用户审核；未获确认不得进入下一阶段。
 - **只读外部数据**：不改 SmartKB2.0 仓库；只读复用其 `models/bge-m3`。
 - **失败即记录**：任何未验证行为标 `待确认`；不得在 README/账本中提前宣称能力。
@@ -62,23 +62,25 @@
 
 ## 3. 关键技术决策
 
+> C2 工程化评测升级（2026-09-11）：检索评测已从 10 题冒烟升级为 32 题分层集（基础/长尾/多跳/拒答），指标扩展为 hit_rate@k / MRR@k / recall@k / nDCG@k + 拒答代理；见 A1 第 3bis 节。
+
 ### 3.1 Provider 抽象（A0 提前）
 - `LLM_PROVIDER=ollama|deepseek|mock`（默认 `ollama`）。
 - Ollama：OpenAI 兼容端点 `http://127.0.0.1:11434/v1`，`api_key="ollama"`，模型 `qwen2.5:7b`。
 - DeepSeek：沿用现有 `deepseek-chat`；仅用于 1 次对比实验。
 - mock：保持现有确定性 MockLLM（CI 默认）。
-- 环境预检：启动 Ollama 前显式设置 `OLLAMA_MODELS=D:\OllamaModels`（当前用户/系统环境变量未设置，模型实际在该目录）。
+- 环境预检：启动 Ollama 前显式设置 `OLLAMA_MODELS=<ollama-models-dir>`（当前用户/系统环境变量未设置，模型实际在该目录）。
 
 ### 3.2 Embedding 服务（2B 的安全落地）
-- 复用 `D:\codex使用文件夹\SmartKB2.0\models\bge-m3`（已在 `pytorch_env` 中验证可用：torch 2.6.0+cu124 / FlagEmbedding 1.4.0）。
-- 新增 `scripts/embed_server.py`：用 `D:\ANACONDA\envs\pytorch_env\python.exe` 启动的轻量 HTTP 服务（默认 `127.0.0.1:11435`）：
+- 复用 `<local-smartkb>\models\bge-m3`（已在 `pytorch_env` 中验证可用：torch 2.6.0+cu124 / FlagEmbedding 1.4.0）。
+- 新增 `scripts/embed_server.py`：用 `<embedding-env>\python.exe` 启动的轻量 HTTP 服务（默认 `127.0.0.1:11435`）：
   - `GET /health` → `{"status":"ok","model":"bge-m3","dim":1024}`
   - `POST /embed` `{"texts":[...]}` → `{"embeddings":[[...]],"dim":1024}`
 - AgentForge 仅用 `requests` 调该服务（`EMBEDDING_BASE_URL`），**不向 AgentForge venv 安装 torch/FlagEmbedding**。
 - 服务不可用时 fail-closed：`local_search` 返回明确错误并记录，不静默返回空；G0/G1 检查清单包含 `/health`。
 
 ### 3.3 知识库（A1）
-- 语料目录 `docs/kb/`（6 篇，均无密钥/PII，已扫描）：AgentForge README、tutorial-AgentForge.md、SmartKB2.0 的《大模型幻觉与Prompt注入风险工程化应对》《微调与LoRA知识》《主流大模型与应用范式分析》《AI应用实习面试学习文档》。
+- 语料目录 `docs/kb/`（均为技术学习文档，不含任何个人求职材料；发布前已扫描无密钥/PII）。
 - 新增 `docs/kb/manifest.json`：每篇记录 `source_path/sha256/license/added_at/size_chars`。
 - 新增 `app/kb/loader.py`（md/txt 读取 + 清洗）、`app/kb/indexer.py`（分块 + 索引 + metadata）、`scripts/build_kb.py`（`--rebuild` / `--incremental`）。
 - Chroma 集合：`agentforge_kb`（`get_or_create_collection(name, embedding_function=OllamaEmbeddingFunction())`），metadata 记录 `embedding_model=bge-m3`、`dim=1024`、`chunk_size=500`、`overlap=50`、`corpus_version`。
@@ -158,13 +160,13 @@ duckduckgo-search==8.1.1
 **目标**：确认环境、版本、测试基线、Ollama 与模型，建立 worktree 与证据文件。
 
 **步骤/命令**
-1. `git worktree add -b codex/agentforge-upgrade D:\codex使用文件夹\AgentForge-v2`（已执行，基线 498e446）。
+1. `git worktree add -b codex/agentforge-upgrade <repo>`（已执行，基线 498e446）。
 2. 依赖记录：主 venv `python -m pip list`（写入 `docs/upgrade/DEPS.md`）。
 3. ollama 预检（需用户正常终端启动，或 AI 获批启动）：
-   - `set OLLAMA_MODELS=D:\OllamaModels`
+   - `set OLLAMA_MODELS=<ollama-models-dir>`
    - `ollama list`（期望 `qwen2.5:7b`、`nomic-embed-text`）
    - `curl http://127.0.0.1:11434/api/version`
-4. embedding 服务预检：`D:\ANACONDA\envs\pytorch_env\python.exe scripts/embed_server.py --check`（仅加载模型并打印维度 1024）。
+4. embedding 服务预检：`<embedding-env>\python.exe scripts/embed_server.py --check`（仅加载模型并打印维度 1024）。
 5. 测试基线：`pytest -q`（期望 22 passed）。
 6. mock e2e：`$env:LLM_MODE="mock"; python scripts/run_e2e.py "冒烟主题"`（当前会因 `validate_for_live()` 失败——A3 修复，G0 记录该已知问题）。
 7. 记录 Chroma 现状：collections=0、embeddings=0。
@@ -334,12 +336,12 @@ duckduckgo-search==8.1.1
 
 ## 11. 本轮已核实的基线事实（2026-09-10）
 
-- worktree：`D:\codex使用文件夹\AgentForge-v2`，分支 `codex/agentforge-upgrade`，HEAD `498e446`。
+- worktree：`<repo>`，分支 `codex/agentforge-upgrade`，HEAD `498e446`。
 - `pytest --collect-only -q` → 22 tests collected。
 - AgentForge venv 关键版本见第 4 节；**未安装** torch/FlagEmbedding/langgraph-checkpoint-sqlite/ruff/alembic。
 - `langgraph-checkpoint-sqlite==3.1.1` dry-run 通过（仅新增 sqlite-vec==0.1.9）。
 - Chroma：collections=0、embeddings=0、segments=0；`app/tools/rag.py` 仅 `get_collection`，无入库代码。
 - Chroma 默认 EF 会尝试下载 ONNX MiniLM 并 PermissionError → 必须自定义 EF + CI fake EF。
-- Ollama：服务器未运行；`D:\OllamaModels` 已有 `qwen2.5:7b`、`nomic-embed-text` manifest；`OLLAMA_MODELS` 用户/系统环境变量未设置。
+- Ollama：服务器未运行；`<ollama-models-dir>` 已有 `qwen2.5:7b`、`nomic-embed-text` manifest；`OLLAMA_MODELS` 用户/系统环境变量未设置。
 - `pytorch_env`：torch 2.6.0+cu124、FlagEmbedding 1.4.0、sentence-transformers 5.7.0、本地 bge-m3 权重就绪。
 - 语料扫描：6 篇候选文档中未发现 `sk-`/`tvly-`/`ghp_`、邮箱、手机号、姓名或 GitHub 账号。

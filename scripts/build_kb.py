@@ -1,7 +1,7 @@
 r"""构建 AgentForge 本地知识库索引。
 
 用法（AgentForge venv；需先启动 embedding 服务）：
-    D:\codex使用文件夹\AgentForge\venv\Scripts\python.exe scripts\build_kb.py --rebuild
+    <repo>\venv\Scripts\python.exe scripts\build_kb.py --rebuild
     ... --incremental          # 增量 upsert（默认）
     ... --fake                 # 用确定性假向量（离线/测试，不调用服务）
 """
@@ -40,7 +40,7 @@ def main() -> int:
                 print(f"embedding 服务就绪：{json.dumps(info, ensure_ascii=False)}")
             except Exception as exc:  # noqa: BLE001
                 print(f"embedding 服务不可用：{exc}")
-                print("请先启动：D:\\ANACONDA\\envs\\pytorch_env\\python.exe scripts\\embed_server.py --port 11435")
+                print("请先启动 embedding 服务：python scripts/embed_server.py --port 11435（需已安装 FlagEmbedding 的环境）")
                 return 2
 
     stats = build_index(
