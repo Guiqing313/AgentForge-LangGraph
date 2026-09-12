@@ -166,7 +166,7 @@ AgentForge/
 
 ## 能力边界（务必如实）
 - 仅**本地演示**：无公网部署、无鉴权、无生产用户；
-- **Docker**：镜像与 compose 已硬化（非 root、healthcheck、host.docker.internal 访问宿主机 Ollama/embedding），但本机未安装 Docker，未本地构建验证；CI 已加 docker build + compose config 校验（推送后触发）。
+- **Docker**：镜像与 compose 已硬化（非 root、healthcheck、host.docker.internal 访问宿主机 Ollama/embedding）；CI 已通过 docker build + compose config 校验。
 - **微调**：未完成（P2-2 三连败与恢复见 `P2-2失败案例.md`，属历史 SmartKB 项目材料）；
 - **YAML 配置 / 快速-标准-深度多工作流模板**：**规划中，未实现**，不得写入简历；
 - **SSE**：仅后端接口，不做断线续传；前端使用轮询；

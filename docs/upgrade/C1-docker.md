@@ -28,6 +28,6 @@ docker compose ps      # 两个服务应 healthy
 docker compose down
 ```
 
-## 4. 边界与待验证
-- 本机未安装 Docker，未做本地 build/up 验证；已加 CI docker job，推送后给出真实构建结果。
+## 4. 边界
+- 镜像与 compose 已通过 CI docker job 校验（build API + build frontend + docker compose config）。
 - 若 Ollama 仅监听 127.0.0.1，容器可能访问不到；可将 OLLAMA_HOST=0.0.0.0:11434 后重启 Ollama（可选排查）。
